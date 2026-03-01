@@ -1,0 +1,16 @@
+{
+  "name": "WF_CASE_EVENT_CREATE",
+  "nodes": [
+    {
+      "parameters": { "path": "case/event/create", "httpMethod": "POST", "responseMode": "responseNode" },
+      "name": "Webhook Event Create",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240,240]
+    }
+  ],
+  "connections": {},
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "1"
+}
