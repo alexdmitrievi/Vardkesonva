@@ -7,12 +7,222 @@
         "httpMethod": "POST",
         "responseMode": "responseNode"
       },
-      "name": "CASE_CREATE_AND_FOLDERS :: Webhook Case Create",
+      "name": "CASE :: Webhook Case Create",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        240,
+        200,
         240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "sheetId": "={{$env.GSHEET_ID}}",
+        "range": "cases!A:G"
+      },
+      "name": "CASE :: GS Read Cases",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        440,
+        240
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $items('Webhook Case Create')[0].json.body; const rows = items.map(i=>i.json); const exists = rows.some(r => r.case_code === body.case_code); return [{...body, exists}];"
+      },
+      "name": "CASE :: Check Case Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.exists}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "CASE :: IF Exists",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        900,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseCode": 409,
+        "responseBody": "={\"error\":\"case_code already exists\"}"
+      },
+      "name": "CASE :: Respond 409",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const code = $json.case_code; return [{...$json, incoming:`/Cases/${code}/01_Incoming`, outgoing:`/Cases/${code}/02_Outgoing`, evidence:`/Cases/${code}/03_Evidence`, created_at:new Date().toISOString()}];"
+      },
+      "name": "CASE :: Build Paths",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://nextcloud.example.ru/remote.php/dav/files/legal_service{{$json.incoming}}",
+        "method": "MKCOL"
+      },
+      "name": "CASE :: DAV MKCOL Incoming",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1340,
+        260
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "nextcloud_webdav",
+          "name": "nextcloud_webdav"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://nextcloud.example.ru/remote.php/dav/files/legal_service{{$json.outgoing}}",
+        "method": "MKCOL"
+      },
+      "name": "CASE :: DAV MKCOL Outgoing",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1540,
+        260
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "nextcloud_webdav",
+          "name": "nextcloud_webdav"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://nextcloud.example.ru/remote.php/dav/files/legal_service{{$json.evidence}}",
+        "method": "MKCOL"
+      },
+      "name": "CASE :: DAV MKCOL Evidence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1740,
+        260
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "nextcloud_webdav",
+          "name": "nextcloud_webdav"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "={{$env.GSHEET_ID}}",
+        "range": "cases!A:G",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "case_code": "={{$json.case_code}}",
+            "client_ref": "={{$json.client_ref}}",
+            "lawyer_ref": "={{$json.lawyer_ref}}",
+            "case_type": "={{$json.case_type}}",
+            "jurisdiction": "={{$json.jurisdiction}}",
+            "status": "active",
+            "created_at": "={{$json.created_at}}"
+          }
+        }
+      },
+      "name": "CASE :: GS Append Case",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1940,
+        200
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "={{$env.GSHEET_ID}}",
+        "range": "case_folders!A:E",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "case_code": "={{$json.case_code}}",
+            "incoming_path": "={{$json.incoming}}",
+            "outgoing_path": "={{$json.outgoing}}",
+            "evidence_path": "={{$json.evidence}}",
+            "created_at": "={{$json.created_at}}"
+          }
+        }
+      },
+      "name": "CASE :: GS Append Folders",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        2140,
+        200
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseCode": 201,
+        "responseBody": "={\"status\":\"created\",\"case_code\":$json.case_code}"
+      },
+      "name": "CASE :: Respond 201",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2340,
+        200
       ]
     },
     {
@@ -22,13 +232,214 @@
           "callback_query"
         ]
       },
-      "name": "TELEGRAM_DOCUMENT_INGEST :: Telegram Trigger",
+      "name": "INGEST :: Telegram Trigger",
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1,
       "position": [
-        240,
-        240
+        220,
+        300
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_main_bot",
+          "name": "telegram_main_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const m=$json.message||{}; const c=(m.caption||'').match(/C-\\d{4}-\\d{3}/); const code=c?c[0]:null; const photo=m.photo?.length?m.photo[m.photo.length-1]:null; return [{case_code:code,file_id:m.document?.file_id||photo?.file_id, chat_id:m.chat?.id, from_id:m.from?.id, original_filename:m.document?.file_name||null}];"
+      },
+      "name": "INGEST :: Parse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
       ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "sheetId": "={{$env.GSHEET_ID}}",
+        "range": "case_folders!A:E"
+      },
+      "name": "INGEST :: GS Read Folders",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        700,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input=$items('Parse')[0].json; const row=items.map(i=>i.json).find(r=>r.case_code===input.case_code); if(!row){ return [{...input, notFound:true}]; } return [{...input, folder_path:row.incoming_path, notFound:false}];"
+      },
+      "name": "INGEST :: Match Case",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.notFound}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "INGEST :: IF Case Missing",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chat_id}}",
+        "text": "Код дела не найден. Проверьте подпись: C-2025-001"
+      },
+      "name": "INGEST :: TG Case Not Found",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1380,
+        180
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_main_bot",
+          "name": "telegram_main_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/bot{{$credentials.telegramApi.accessToken}}/getFile?file_id={{$json.file_id}}",
+        "method": "GET"
+      },
+      "name": "INGEST :: TG getFile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1380,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/file/bot{{$credentials.telegramApi.accessToken}}/{{$json.result.file_path}}",
+        "method": "GET",
+        "responseFormat": "file",
+        "binaryPropertyName": "data"
+      },
+      "name": "INGEST :: TG Download",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1600,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ext=$binary.data.fileExtension||'bin'; const ts=new Date().toISOString().replace(/[-:]/g,'').slice(0,15); const rnd=Math.random().toString(36).slice(2,8); return [{...$json, stored_filename:`DOC_${$json.case_code}_${ts}_${rnd}.${ext}`}]"
+      },
+      "name": "INGEST :: Safe Filename",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1820,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://nextcloud.example.ru/remote.php/dav/files/legal_service{{$json.folder_path}}/{{$json.stored_filename}}",
+        "method": "PUT",
+        "sendBinaryData": true,
+        "binaryPropertyName": "data"
+      },
+      "name": "INGEST :: DAV Upload",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2040,
+        380
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "nextcloud_webdav",
+          "name": "nextcloud_webdav"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "={{$env.GSHEET_ID}}",
+        "range": "documents!A:H",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "doc_id": "={{$now.toMillis()}}",
+            "case_code": "={{$json.case_code}}",
+            "uploaded_by_telegram_id": "={{$json.from_id}}",
+            "stored_filename": "={{$json.stored_filename}}",
+            "storage_path": "={{$json.folder_path + '/' + $json.stored_filename}}",
+            "mime_type": "={{$binary.data.mimeType}}",
+            "size_bytes": "={{$binary.data.fileSize}}",
+            "uploaded_at": "={{$now}}"
+          }
+        }
+      },
+      "name": "INGEST :: GS Append Document",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        2260,
+        380
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chat_id}}",
+        "text": "Документ получен и добавлен к вашему делу."
+      },
+      "name": "INGEST :: TG Ack",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        2480,
+        380
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_main_bot",
+          "name": "telegram_main_bot"
+        }
+      }
     },
     {
       "parameters": {
@@ -36,11 +447,157 @@
         "httpMethod": "POST",
         "responseMode": "responseNode"
       },
-      "name": "CASE_EVENT_CREATE :: Webhook Event Create",
+      "name": "EVENT :: Webhook Event",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        240,
+        220,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const b=$json.body; const event_id=String(Date.now()); return [{...b, event_id, created_at:new Date().toISOString()}];"
+      },
+      "name": "EVENT :: Prepare",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://calendar.yandex.ru/api/events",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"title\":'['+$json.case_code+'] '+$json.event_type,\"start\":$json.start_at,\"end\":$json.end_at,\"timezone\":$json.timezone}"
+      },
+      "name": "EVENT :: Calendar Create",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        700,
+        240
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "yandex_calendar_api",
+          "name": "yandex_calendar_api"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "={{$env.GSHEET_ID}}",
+        "range": "calendar_events!A:G",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{$json.event_id}}",
+            "case_code": "={{$json.case_code}}",
+            "event_type": "={{$json.event_type}}",
+            "start_at": "={{$json.start_at}}",
+            "end_at": "={{$json.end_at}}",
+            "external_event_id": "={{$json.id}}",
+            "created_at": "={{$json.created_at}}"
+          }
+        }
+      },
+      "name": "EVENT :: GS Append Event",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        940,
+        240
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "={{$env.GSHEET_ID}}",
+        "range": "reminders!A:H",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "reminder_id": "={{$json.event_id + '-24h'}}",
+            "event_id": "={{$json.event_id}}",
+            "recipient_role": "lawyer",
+            "telegram_chat_id": "={{$json.lawyer_chat_id}}",
+            "message_text": "={{'Напоминание: событие по делу ' + $json.case_code + ' через 24 часа.'}}",
+            "send_at": "={{DateTime.fromISO($json.start_at).minus({hours:24}).toISO()}}",
+            "status": "pending",
+            "sent_at": ""
+          }
+        }
+      },
+      "name": "EVENT :: GS Append Reminder 24h",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1180,
+        200
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "={{$env.GSHEET_ID}}",
+        "range": "reminders!A:H",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "reminder_id": "={{$json.event_id + '-2h'}}",
+            "event_id": "={{$json.event_id}}",
+            "recipient_role": "lawyer",
+            "telegram_chat_id": "={{$json.lawyer_chat_id}}",
+            "message_text": "={{'Напоминание: событие по делу ' + $json.case_code + ' через 2 часа.'}}",
+            "send_at": "={{DateTime.fromISO($json.start_at).minus({hours:2}).toISO()}}",
+            "status": "pending",
+            "sent_at": ""
+          }
+        }
+      },
+      "name": "EVENT :: GS Append Reminder 2h",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1400,
+        200
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseCode": 201,
+        "responseBody": "={\"status\":\"created\",\"event_id\":$json.event_id}"
+      },
+      "name": "EVENT :: Respond 201",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1620,
         240
       ]
     },
@@ -55,19 +612,479 @@
           ]
         }
       },
-      "name": "REMINDER_DISPATCH_CRON :: Cron Every 15m",
+      "name": "REMIND :: Cron",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1,
       "position": [
-        240,
+        220,
         240
       ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "sheetId": "={{$env.GSHEET_ID}}",
+        "range": "reminders!A:H"
+      },
+      "name": "REMIND :: GS Read Reminders",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        460,
+        240
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const now=new Date(); return items.filter(i=>i.json.status==='pending' && new Date(i.json.send_at)<=now);"
+      },
+      "name": "REMIND :: Filter Due",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1
+      },
+      "name": "REMIND :: Split",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        920,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.telegram_chat_id}}",
+        "text": "={{$json.recipient_role === 'client' ? 'Напоминаем о запланированном мероприятии по вашему делу на указанную дату/время.' : $json.message_text}}"
+      },
+      "name": "REMIND :: TG Send",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1140,
+        240
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_main_bot",
+          "name": "telegram_main_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "={{$env.GSHEET_ID}}",
+        "range": "reminders_sent_log!A:D",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "reminder_id": "={{$json.reminder_id}}",
+            "sent_at": "={{$now}}",
+            "recipient_role": "={{$json.recipient_role}}",
+            "status": "sent"
+          }
+        }
+      },
+      "name": "REMIND :: GS Sent Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1360,
+        240
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
+        }
+      }
     }
   ],
-  "connections": {},
+  "connections": {
+    "CASE :: Webhook Case Create": {
+      "main": [
+        [
+          {
+            "node": "CASE :: GS Read Cases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CASE :: GS Read Cases": {
+      "main": [
+        [
+          {
+            "node": "CASE :: Check Case Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CASE :: Check Case Code": {
+      "main": [
+        [
+          {
+            "node": "CASE :: IF Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CASE :: IF Exists": {
+      "main": [
+        [
+          {
+            "node": "CASE :: Respond 409",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CASE :: Build Paths",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CASE :: Build Paths": {
+      "main": [
+        [
+          {
+            "node": "CASE :: DAV MKCOL Incoming",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CASE :: DAV MKCOL Incoming": {
+      "main": [
+        [
+          {
+            "node": "CASE :: DAV MKCOL Outgoing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CASE :: DAV MKCOL Outgoing": {
+      "main": [
+        [
+          {
+            "node": "CASE :: DAV MKCOL Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CASE :: DAV MKCOL Evidence": {
+      "main": [
+        [
+          {
+            "node": "CASE :: GS Append Case",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CASE :: GS Append Case": {
+      "main": [
+        [
+          {
+            "node": "CASE :: GS Append Folders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CASE :: GS Append Folders": {
+      "main": [
+        [
+          {
+            "node": "CASE :: Respond 201",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGEST :: Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "INGEST :: Parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGEST :: Parse": {
+      "main": [
+        [
+          {
+            "node": "INGEST :: GS Read Folders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGEST :: GS Read Folders": {
+      "main": [
+        [
+          {
+            "node": "INGEST :: Match Case",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGEST :: Match Case": {
+      "main": [
+        [
+          {
+            "node": "INGEST :: IF Case Missing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGEST :: IF Case Missing": {
+      "main": [
+        [
+          {
+            "node": "INGEST :: TG Case Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "INGEST :: TG getFile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGEST :: TG getFile": {
+      "main": [
+        [
+          {
+            "node": "INGEST :: TG Download",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGEST :: TG Download": {
+      "main": [
+        [
+          {
+            "node": "INGEST :: Safe Filename",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGEST :: Safe Filename": {
+      "main": [
+        [
+          {
+            "node": "INGEST :: DAV Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGEST :: DAV Upload": {
+      "main": [
+        [
+          {
+            "node": "INGEST :: GS Append Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGEST :: GS Append Document": {
+      "main": [
+        [
+          {
+            "node": "INGEST :: TG Ack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EVENT :: Webhook Event": {
+      "main": [
+        [
+          {
+            "node": "EVENT :: Prepare",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EVENT :: Prepare": {
+      "main": [
+        [
+          {
+            "node": "EVENT :: Calendar Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EVENT :: Calendar Create": {
+      "main": [
+        [
+          {
+            "node": "EVENT :: GS Append Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EVENT :: GS Append Event": {
+      "main": [
+        [
+          {
+            "node": "EVENT :: GS Append Reminder 24h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EVENT :: GS Append Reminder 24h": {
+      "main": [
+        [
+          {
+            "node": "EVENT :: GS Append Reminder 2h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EVENT :: GS Append Reminder 2h": {
+      "main": [
+        [
+          {
+            "node": "EVENT :: Respond 201",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "REMIND :: Cron": {
+      "main": [
+        [
+          {
+            "node": "REMIND :: GS Read Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "REMIND :: GS Read Reminders": {
+      "main": [
+        [
+          {
+            "node": "REMIND :: Filter Due",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "REMIND :: Filter Due": {
+      "main": [
+        [
+          {
+            "node": "REMIND :: Split",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "REMIND :: Split": {
+      "main": [
+        [
+          {
+            "node": "REMIND :: TG Send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "REMIND :: TG Send": {
+      "main": [
+        [
+          {
+            "node": "REMIND :: GS Sent Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "REMIND :: GS Sent Log": {
+      "main": [
+        [
+          {
+            "node": "REMIND :: Split",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
   "active": false,
   "settings": {
     "executionOrder": "v1"
   },
   "versionId": "1"
 }
+
