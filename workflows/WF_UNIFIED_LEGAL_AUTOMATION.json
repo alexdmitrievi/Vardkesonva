@@ -1,0 +1,73 @@
+{
+  "name": "WF_UNIFIED_LEGAL_AUTOMATION",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "case/create",
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      },
+      "name": "CASE_CREATE_AND_FOLDERS :: Webhook Case Create",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "path": "case/event/create",
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      },
+      "name": "CASE_EVENT_CREATE :: Webhook Event Create",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "name": "REMINDER_DISPATCH_CRON :: Cron Every 15m",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message",
+          "callback_query"
+        ]
+      },
+      "name": "TELEGRAM_DOCUMENT_INGEST :: Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        240
+      ]
+    }
+  ],
+  "connections": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1"
+}
