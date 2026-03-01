@@ -25,6 +25,32 @@
     "versionId": "1"
   },
   {
+    "name": "WF_TELEGRAM_DOCUMENT_INGEST",
+    "nodes": [
+      {
+        "parameters": {
+          "updates": [
+            "message",
+            "callback_query"
+          ]
+        },
+        "name": "Telegram Trigger",
+        "type": "n8n-nodes-base.telegramTrigger",
+        "typeVersion": 1,
+        "position": [
+          240,
+          240
+        ]
+      }
+    ],
+    "connections": {},
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1"
+  },
+  {
     "name": "WF_CASE_EVENT_CREATE",
     "nodes": [
       {
@@ -65,32 +91,6 @@
         },
         "name": "Cron Every 15m",
         "type": "n8n-nodes-base.scheduleTrigger",
-        "typeVersion": 1,
-        "position": [
-          240,
-          240
-        ]
-      }
-    ],
-    "connections": {},
-    "active": false,
-    "settings": {
-      "executionOrder": "v1"
-    },
-    "versionId": "1"
-  },
-  {
-    "name": "WF_TELEGRAM_DOCUMENT_INGEST",
-    "nodes": [
-      {
-        "parameters": {
-          "updates": [
-            "message",
-            "callback_query"
-          ]
-        },
-        "name": "Telegram Trigger",
-        "type": "n8n-nodes-base.telegramTrigger",
         "typeVersion": 1,
         "position": [
           240,
