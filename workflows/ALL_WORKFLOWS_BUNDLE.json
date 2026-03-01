@@ -1,0 +1,108 @@
+[
+  {
+    "name": "WF_CASE_CREATE_AND_FOLDERS",
+    "nodes": [
+      {
+        "parameters": {
+          "path": "case/create",
+          "httpMethod": "POST",
+          "responseMode": "responseNode"
+        },
+        "name": "Webhook Case Create",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          240,
+          240
+        ]
+      }
+    ],
+    "connections": {},
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1"
+  },
+  {
+    "name": "WF_CASE_EVENT_CREATE",
+    "nodes": [
+      {
+        "parameters": {
+          "path": "case/event/create",
+          "httpMethod": "POST",
+          "responseMode": "responseNode"
+        },
+        "name": "Webhook Event Create",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          240,
+          240
+        ]
+      }
+    ],
+    "connections": {},
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1"
+  },
+  {
+    "name": "WF_REMINDER_DISPATCH_CRON",
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 15
+              }
+            ]
+          }
+        },
+        "name": "Cron Every 15m",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1,
+        "position": [
+          240,
+          240
+        ]
+      }
+    ],
+    "connections": {},
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1"
+  },
+  {
+    "name": "WF_TELEGRAM_DOCUMENT_INGEST",
+    "nodes": [
+      {
+        "parameters": {
+          "updates": [
+            "message",
+            "callback_query"
+          ]
+        },
+        "name": "Telegram Trigger",
+        "type": "n8n-nodes-base.telegramTrigger",
+        "typeVersion": 1,
+        "position": [
+          240,
+          240
+        ]
+      }
+    ],
+    "connections": {},
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1"
+  }
+]
