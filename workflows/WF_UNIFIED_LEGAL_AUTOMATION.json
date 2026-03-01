@@ -7,7 +7,7 @@
         "httpMethod": "POST",
         "responseMode": "responseNode"
       },
-      "name": "CASE :: Webhook Case Create",
+      "name": "CASE_CREATE_AND_FOLDERS :: Webhook Case Create",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
@@ -21,7 +21,7 @@
         "sheetId": "={{$env.GSHEET_ID}}",
         "range": "cases!A:G"
       },
-      "name": "CASE :: GS Read Cases",
+      "name": "CASE_CREATE_AND_FOLDERS :: GS Read Cases",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
@@ -39,7 +39,7 @@
       "parameters": {
         "jsCode": "const body = $items('Webhook Case Create')[0].json.body; const rows = items.map(i=>i.json); const exists = rows.some(r => r.case_code === body.case_code); return [{...body, exists}];"
       },
-      "name": "CASE :: Check Case Code",
+      "name": "CASE_CREATE_AND_FOLDERS :: Check Case Code",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -58,7 +58,7 @@
           ]
         }
       },
-      "name": "CASE :: IF Exists",
+      "name": "CASE_CREATE_AND_FOLDERS :: IF Exists",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
@@ -72,7 +72,7 @@
         "responseCode": 409,
         "responseBody": "={\"error\":\"case_code already exists\"}"
       },
-      "name": "CASE :: Respond 409",
+      "name": "CASE_CREATE_AND_FOLDERS :: Respond 409",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
@@ -84,7 +84,7 @@
       "parameters": {
         "jsCode": "const code = $json.case_code; return [{...$json, incoming:`/Cases/${code}/01_Incoming`, outgoing:`/Cases/${code}/02_Outgoing`, evidence:`/Cases/${code}/03_Evidence`, created_at:new Date().toISOString()}];"
       },
-      "name": "CASE :: Build Paths",
+      "name": "CASE_CREATE_AND_FOLDERS :: Build Paths",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -97,7 +97,7 @@
         "url": "=https://nextcloud.example.ru/remote.php/dav/files/legal_service{{$json.incoming}}",
         "method": "MKCOL"
       },
-      "name": "CASE :: DAV MKCOL Incoming",
+      "name": "CASE_CREATE_AND_FOLDERS :: DAV MKCOL Incoming",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
@@ -116,7 +116,7 @@
         "url": "=https://nextcloud.example.ru/remote.php/dav/files/legal_service{{$json.outgoing}}",
         "method": "MKCOL"
       },
-      "name": "CASE :: DAV MKCOL Outgoing",
+      "name": "CASE_CREATE_AND_FOLDERS :: DAV MKCOL Outgoing",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
@@ -135,7 +135,7 @@
         "url": "=https://nextcloud.example.ru/remote.php/dav/files/legal_service{{$json.evidence}}",
         "method": "MKCOL"
       },
-      "name": "CASE :: DAV MKCOL Evidence",
+      "name": "CASE_CREATE_AND_FOLDERS :: DAV MKCOL Evidence",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
@@ -167,7 +167,7 @@
           }
         }
       },
-      "name": "CASE :: GS Append Case",
+      "name": "CASE_CREATE_AND_FOLDERS :: GS Append Case",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
@@ -197,7 +197,7 @@
           }
         }
       },
-      "name": "CASE :: GS Append Folders",
+      "name": "CASE_CREATE_AND_FOLDERS :: GS Append Folders",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
@@ -217,7 +217,7 @@
         "responseCode": 201,
         "responseBody": "={\"status\":\"created\",\"case_code\":$json.case_code}"
       },
-      "name": "CASE :: Respond 201",
+      "name": "CASE_CREATE_AND_FOLDERS :: Respond 201",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
@@ -227,219 +227,45 @@
     },
     {
       "parameters": {
-        "updates": [
-          "message",
-          "callback_query"
-        ]
-      },
-      "name": "INGEST :: Telegram Trigger",
-      "type": "n8n-nodes-base.telegramTrigger",
-      "typeVersion": 1,
-      "position": [
-        220,
-        300
-      ],
-      "credentials": {
-        "telegramApi": {
-          "id": "telegram_main_bot",
-          "name": "telegram_main_bot"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "const m=$json.message||{}; const c=(m.caption||'').match(/C-\\d{4}-\\d{3}/); const code=c?c[0]:null; const photo=m.photo?.length?m.photo[m.photo.length-1]:null; return [{case_code:code,file_id:m.document?.file_id||photo?.file_id, chat_id:m.chat?.id, from_id:m.from?.id, original_filename:m.document?.file_name||null}];"
-      },
-      "name": "INGEST :: Parse",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        460,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "read",
-        "sheetId": "={{$env.GSHEET_ID}}",
-        "range": "case_folders!A:E"
-      },
-      "name": "INGEST :: GS Read Folders",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
-      "position": [
-        700,
-        300
-      ],
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "google_sheets_main",
-          "name": "google_sheets_main"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "const input=$items('Parse')[0].json; const row=items.map(i=>i.json).find(r=>r.case_code===input.case_code); if(!row){ return [{...input, notFound:true}]; } return [{...input, folder_path:row.incoming_path, notFound:false}];"
-      },
-      "name": "INGEST :: Match Case",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        940,
-        300
-      ]
-    },
-    {
-      "parameters": {
         "conditions": {
           "boolean": [
             {
-              "value1": "={{$json.notFound}}",
+              "value1": "={{$env.YC_METADATA_MIRROR === '1' && !!$env.YC_METADATA_API_URL}}",
               "value2": true
             }
           ]
         }
       },
-      "name": "INGEST :: IF Case Missing",
+      "name": "CASE_CREATE_AND_FOLDERS :: IF YC Mirror Enabled",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        1160,
+        2360,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.YC_METADATA_API_URL + '/cases/upsert'}}",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { case_code: $json.case_code, client_ref: $json.client_ref, lawyer_ref: $json.lawyer_ref, case_type: $json.case_type, jurisdiction: $json.jurisdiction, status: $json.status || 'new', incoming_path: $json.incoming, outgoing_path: $json.outgoing, evidence_path: $json.evidence, created_at: $json.created_at } }}"
+      },
+      "name": "CASE_CREATE_AND_FOLDERS :: YC Mirror Case Upsert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2580,
         300
-      ]
-    },
-    {
-      "parameters": {
-        "chatId": "={{$json.chat_id}}",
-        "text": "Код дела не найден. Проверьте подпись: C-2025-001"
-      },
-      "name": "INGEST :: TG Case Not Found",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1,
-      "position": [
-        1380,
-        180
       ],
       "credentials": {
-        "telegramApi": {
-          "id": "telegram_main_bot",
-          "name": "telegram_main_bot"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "url": "=https://api.telegram.org/bot{{$credentials.telegramApi.accessToken}}/getFile?file_id={{$json.file_id}}",
-        "method": "GET"
-      },
-      "name": "INGEST :: TG getFile",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [
-        1380,
-        380
-      ]
-    },
-    {
-      "parameters": {
-        "url": "=https://api.telegram.org/file/bot{{$credentials.telegramApi.accessToken}}/{{$json.result.file_path}}",
-        "method": "GET",
-        "responseFormat": "file",
-        "binaryPropertyName": "data"
-      },
-      "name": "INGEST :: TG Download",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [
-        1600,
-        380
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const ext=$binary.data.fileExtension||'bin'; const ts=new Date().toISOString().replace(/[-:]/g,'').slice(0,15); const rnd=Math.random().toString(36).slice(2,8); return [{...$json, stored_filename:`DOC_${$json.case_code}_${ts}_${rnd}.${ext}`}]"
-      },
-      "name": "INGEST :: Safe Filename",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1820,
-        380
-      ]
-    },
-    {
-      "parameters": {
-        "url": "=https://nextcloud.example.ru/remote.php/dav/files/legal_service{{$json.folder_path}}/{{$json.stored_filename}}",
-        "method": "PUT",
-        "sendBinaryData": true,
-        "binaryPropertyName": "data"
-      },
-      "name": "INGEST :: DAV Upload",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [
-        2040,
-        380
-      ],
-      "credentials": {
-        "httpBasicAuth": {
-          "id": "nextcloud_webdav",
-          "name": "nextcloud_webdav"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "append",
-        "sheetId": "={{$env.GSHEET_ID}}",
-        "range": "documents!A:H",
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "doc_id": "={{$now.toMillis()}}",
-            "case_code": "={{$json.case_code}}",
-            "uploaded_by_telegram_id": "={{$json.from_id}}",
-            "stored_filename": "={{$json.stored_filename}}",
-            "storage_path": "={{$json.folder_path + '/' + $json.stored_filename}}",
-            "mime_type": "={{$binary.data.mimeType}}",
-            "size_bytes": "={{$binary.data.fileSize}}",
-            "uploaded_at": "={{$now}}"
-          }
+        "httpHeaderAuth": {
+          "id": "yc_backend_api",
+          "name": "yc_backend_api"
         }
       },
-      "name": "INGEST :: GS Append Document",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
-      "position": [
-        2260,
-        380
-      ],
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "google_sheets_main",
-          "name": "google_sheets_main"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "chatId": "={{$json.chat_id}}",
-        "text": "Документ получен и добавлен к вашему делу."
-      },
-      "name": "INGEST :: TG Ack",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1,
-      "position": [
-        2480,
-        380
-      ],
-      "credentials": {
-        "telegramApi": {
-          "id": "telegram_main_bot",
-          "name": "telegram_main_bot"
-        }
-      }
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -447,7 +273,7 @@
         "httpMethod": "POST",
         "responseMode": "responseNode"
       },
-      "name": "EVENT :: Webhook Event",
+      "name": "CASE_EVENT_CREATE :: Webhook Event",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
@@ -457,9 +283,9 @@
     },
     {
       "parameters": {
-        "jsCode": "const b=$json.body; const event_id=String(Date.now()); return [{...b, event_id, created_at:new Date().toISOString()}];"
+        "jsCode": "const b = $json.body || {};\nconst event_id = String(Date.now());\nconst event_type = b.event_type || 'court_hearing';\nreturn [{ ...b, event_type, event_id, created_at: new Date().toISOString() }];"
       },
-      "name": "EVENT :: Prepare",
+      "name": "CASE_EVENT_CREATE :: Prepare",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -475,7 +301,7 @@
         "specifyBody": "json",
         "jsonBody": "={\"title\":'['+$json.case_code+'] '+$json.event_type,\"start\":$json.start_at,\"end\":$json.end_at,\"timezone\":$json.timezone}"
       },
-      "name": "EVENT :: Calendar Create",
+      "name": "CASE_EVENT_CREATE :: Calendar Create",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
@@ -507,7 +333,7 @@
           }
         }
       },
-      "name": "EVENT :: GS Append Event",
+      "name": "CASE_EVENT_CREATE :: GS Append Event",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
@@ -540,7 +366,7 @@
           }
         }
       },
-      "name": "EVENT :: GS Append Reminder 24h",
+      "name": "CASE_EVENT_CREATE :: GS Append Reminder 24h",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
@@ -573,7 +399,7 @@
           }
         }
       },
-      "name": "EVENT :: GS Append Reminder 2h",
+      "name": "CASE_EVENT_CREATE :: GS Append Reminder 2h",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
@@ -593,13 +419,107 @@
         "responseCode": 201,
         "responseBody": "={\"status\":\"created\",\"event_id\":$json.event_id}"
       },
-      "name": "EVENT :: Respond 201",
+      "name": "CASE_EVENT_CREATE :: Respond 201",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
         1620,
         240
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{Boolean($json.client_chat_id) && Boolean($json.payment_due_at)}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "CASE_EVENT_CREATE :: IF Client Payment Reminder",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1620,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "={{$env.GSHEET_ID}}",
+        "range": "reminders!A:H",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "reminder_id": "={{$json.event_id + '-payment'}}",
+            "event_id": "={{$json.event_id}}",
+            "recipient_role": "client",
+            "telegram_chat_id": "={{$json.client_chat_id}}",
+            "message_text": "={{'Напоминание об оплате по делу ' + $json.case_code + ($json.payment_amount ? ('. Сумма: ' + $json.payment_amount) : '')}}",
+            "send_at": "={{$json.payment_due_at}}",
+            "status": "pending",
+            "sent_at": ""
+          }
+        }
+      },
+      "name": "CASE_EVENT_CREATE :: GS Append Client Payment Reminder",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1840,
+        320
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$env.YC_METADATA_MIRROR === '1' && !!$env.YC_METADATA_API_URL}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "CASE_EVENT_CREATE :: IF YC Mirror Enabled",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2060,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.YC_METADATA_API_URL + '/events/upsert'}}",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { event_id: $json.event_id, case_code: $json.case_code, event_type: $json.event_type, start_at: $json.start_at, end_at: $json.end_at, timezone: $json.timezone, lawyer_chat_id: $json.lawyer_chat_id, client_chat_id: $json.client_chat_id || null, payment_due_at: $json.payment_due_at || null, payment_amount: $json.payment_amount || null, created_at: $json.created_at } }}"
+      },
+      "name": "CASE_EVENT_CREATE :: YC Mirror Event Upsert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2280,
+        220
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "yc_backend_api",
+          "name": "yc_backend_api"
+        }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -612,7 +532,7 @@
           ]
         }
       },
-      "name": "REMIND :: Cron",
+      "name": "REMINDER_DISPATCH_CRON :: Cron",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1,
       "position": [
@@ -626,7 +546,7 @@
         "sheetId": "={{$env.GSHEET_ID}}",
         "range": "reminders!A:H"
       },
-      "name": "REMIND :: GS Read Reminders",
+      "name": "REMINDER_DISPATCH_CRON :: GS Read Reminders",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
@@ -642,13 +562,33 @@
     },
     {
       "parameters": {
-        "jsCode": "const now=new Date(); return items.filter(i=>i.json.status==='pending' && new Date(i.json.send_at)<=now);"
+        "operation": "read",
+        "sheetId": "={{$env.GSHEET_ID}}",
+        "range": "reminders_sent_log!A:D"
       },
-      "name": "REMIND :: Filter Due",
+      "name": "REMINDER_DISPATCH_CRON :: GS Read Sent Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        700,
+        240
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const reminders = $items('GS Read Reminders').map(i => i.json);\nconst sentIds = new Set(items.map(i => i.json.reminder_id).filter(Boolean));\nconst now = new Date();\nreturn reminders.filter(r => r.status === 'pending' && new Date(r.send_at) <= now && !sentIds.has(r.reminder_id)).map(r => ({ json: r }));"
+      },
+      "name": "REMINDER_DISPATCH_CRON :: Filter Due",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        700,
+        940,
         240
       ]
     },
@@ -656,24 +596,24 @@
       "parameters": {
         "batchSize": 1
       },
-      "name": "REMIND :: Split",
+      "name": "REMINDER_DISPATCH_CRON :: Split",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        920,
+        1160,
         240
       ]
     },
     {
       "parameters": {
         "chatId": "={{$json.telegram_chat_id}}",
-        "text": "={{$json.recipient_role === 'client' ? 'Напоминаем о запланированном мероприятии по вашему делу на указанную дату/время.' : $json.message_text}}"
+        "text": "={{$json.message_text || ($json.recipient_role === 'client' ? 'Напоминание по вашему делу.' : 'Напоминание по событию.')}}"
       },
-      "name": "REMIND :: TG Send",
+      "name": "REMINDER_DISPATCH_CRON :: TG Send",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1,
       "position": [
-        1140,
+        1380,
         240
       ],
       "credentials": {
@@ -698,11 +638,11 @@
           }
         }
       },
-      "name": "REMIND :: GS Sent Log",
+      "name": "REMINDER_DISPATCH_CRON :: GS Sent Log",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        1360,
+        1600,
         240
       ],
       "credentials": {
@@ -711,369 +651,825 @@
           "name": "google_sheets_main"
         }
       }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$env.YC_METADATA_MIRROR === '1' && !!$env.YC_METADATA_API_URL}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "REMINDER_DISPATCH_CRON :: IF YC Mirror Enabled",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1820,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.YC_METADATA_API_URL + '/reminders/sent'}}",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { reminder_id: $json.reminder_id, recipient_role: $json.recipient_role, sent_at: String($now), status: 'sent' } }}"
+      },
+      "name": "REMINDER_DISPATCH_CRON :: YC Mirror Reminder Sent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2040,
+        220
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "yc_backend_api",
+          "name": "yc_backend_api"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message",
+          "callback_query"
+        ]
+      },
+      "name": "TELEGRAM_DOCUMENT_INGEST :: Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_main_bot",
+          "name": "telegram_main_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const m = $json.message || {};\nconst metaText = [m.caption, m.text].filter(Boolean).join(' ');\nconst caseMatch = metaText.match(/C-\\d{4}-\\d{3}|\\b\\d{4,}\\b/);\nconst case_code = caseMatch ? caseMatch[0] : null;\nconst photo = m.photo?.length ? m.photo[m.photo.length - 1] : null;\nconst document = m.document || null;\nconst file_id = document?.file_id || photo?.file_id || null;\nconst extRaw = (document?.file_name || '').split('.').pop()?.toLowerCase();\nconst ext = photo ? 'jpg' : (extRaw || null);\nconst mime = document?.mime_type || (photo ? 'image/jpeg' : null);\nconst allowed = new Set(['jpg','jpeg','png','pdf','doc','docx','txt']);\nif (!file_id) {\n  return [{ invalid: true, notFound: true, error_text: 'Не найден файл. Отправьте фото или документ (PDF/DOCX/TXT).', chat_id: m.chat?.id }];\n}\nif (!case_code) {\n  return [{ invalid: true, notFound: true, error_text: 'Не найден номер дела. Укажите его в подписи, например: C-2025-001.', chat_id: m.chat?.id }];\n}\nif (!ext || !allowed.has(ext)) {\n  return [{ invalid: true, notFound: true, error_text: 'Поддерживаются только фото, PDF, DOC/DOCX и TXT.', chat_id: m.chat?.id, case_code }];\n}\nreturn [{ case_code, file_id, chat_id: m.chat?.id, from_id: m.from?.id, original_filename: document?.file_name || null, detected_ext: ext, detected_mime: mime, invalid: false }];"
+      },
+      "name": "TELEGRAM_DOCUMENT_INGEST :: Parse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "sheetId": "={{$env.GSHEET_ID}}",
+        "range": "case_folders!A:E"
+      },
+      "name": "TELEGRAM_DOCUMENT_INGEST :: GS Read Folders",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        700,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $items('Parse')[0].json;\nif (input.invalid) return [input];\nconst row = items.map(i => i.json).find(r => String(r.case_code) === String(input.case_code));\nif (!row) {\n  return [{ ...input, notFound: true, error_text: `Дело ${input.case_code} не найдено. Проверьте номер.` }];\n}\nreturn [{ ...input, folder_path: row.incoming_path, notFound: false }];"
+      },
+      "name": "TELEGRAM_DOCUMENT_INGEST :: Match Case",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.notFound}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "TELEGRAM_DOCUMENT_INGEST :: IF Case Missing",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chat_id}}",
+        "text": "={{$json.error_text || 'Код дела не найден. Проверьте подпись: C-2025-001'}}"
+      },
+      "name": "TELEGRAM_DOCUMENT_INGEST :: TG Case Not Found",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1380,
+        180
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_main_bot",
+          "name": "telegram_main_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/bot{{$credentials.telegramApi.accessToken}}/getFile?file_id={{$json.file_id}}",
+        "method": "GET"
+      },
+      "name": "TELEGRAM_DOCUMENT_INGEST :: TG getFile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1380,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/file/bot{{$credentials.telegramApi.accessToken}}/{{$json.result.file_path}}",
+        "method": "GET",
+        "responseFormat": "file",
+        "binaryPropertyName": "data"
+      },
+      "name": "TELEGRAM_DOCUMENT_INGEST :: TG Download",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1600,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ext = ($json.detected_ext || $binary.data.fileExtension || 'bin').toLowerCase();\nconst ts = new Date().toISOString().replace(/[-:]/g,'').slice(0,15);\nconst rnd = Math.random().toString(36).slice(2,8);\nreturn [{...$json, stored_filename:`DOC_${$json.case_code}_${ts}_${rnd}.${ext}`}];"
+      },
+      "name": "TELEGRAM_DOCUMENT_INGEST :: Safe Filename",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1820,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://nextcloud.example.ru/remote.php/dav/files/legal_service{{$json.folder_path}}/{{$json.stored_filename}}",
+        "method": "PUT",
+        "sendBinaryData": true,
+        "binaryPropertyName": "data"
+      },
+      "name": "TELEGRAM_DOCUMENT_INGEST :: DAV Upload",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2040,
+        380
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "nextcloud_webdav",
+          "name": "nextcloud_webdav"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "={{$env.GSHEET_ID}}",
+        "range": "documents!A:H",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "doc_id": "={{$now.toMillis()}}",
+            "case_code": "={{$json.case_code}}",
+            "uploaded_by_telegram_id": "={{$json.from_id}}",
+            "stored_filename": "={{$json.stored_filename}}",
+            "storage_path": "={{$json.folder_path + '/' + $json.stored_filename}}",
+            "mime_type": "={{$binary.data.mimeType}}",
+            "size_bytes": "={{$binary.data.fileSize}}",
+            "uploaded_at": "={{$now}}"
+          }
+        }
+      },
+      "name": "TELEGRAM_DOCUMENT_INGEST :: GS Append Document",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        2260,
+        380
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chat_id}}",
+        "text": "Документ получен и добавлен к вашему делу."
+      },
+      "name": "TELEGRAM_DOCUMENT_INGEST :: TG Ack",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        2480,
+        380
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_main_bot",
+          "name": "telegram_main_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$env.YC_METADATA_MIRROR === '1' && !!$env.YC_METADATA_API_URL}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "TELEGRAM_DOCUMENT_INGEST :: IF YC Mirror Enabled",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2480,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.YC_METADATA_API_URL + '/documents/upsert'}}",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { doc_id: String($now.toMillis()), case_code: $json.case_code, uploaded_by_telegram_id: String($json.from_id || ''), stored_filename: $json.stored_filename, storage_path: $json.folder_path + '/' + $json.stored_filename, mime_type: $binary.data.mimeType, size_bytes: $binary.data.fileSize, uploaded_at: String($now) } }}"
+      },
+      "name": "TELEGRAM_DOCUMENT_INGEST :: YC Mirror Document Upsert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2700,
+        340
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "yc_backend_api",
+          "name": "yc_backend_api"
+        }
+      },
+      "continueOnFail": true
     }
   ],
   "connections": {
-    "CASE :: Webhook Case Create": {
+    "CASE_CREATE_AND_FOLDERS :: Webhook Case Create": {
       "main": [
         [
           {
-            "node": "CASE :: GS Read Cases",
+            "node": "CASE_CREATE_AND_FOLDERS :: GS Read Cases",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "CASE :: GS Read Cases": {
+    "CASE_CREATE_AND_FOLDERS :: GS Read Cases": {
       "main": [
         [
           {
-            "node": "CASE :: Check Case Code",
+            "node": "CASE_CREATE_AND_FOLDERS :: Check Case Code",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "CASE :: Check Case Code": {
+    "CASE_CREATE_AND_FOLDERS :: Check Case Code": {
       "main": [
         [
           {
-            "node": "CASE :: IF Exists",
+            "node": "CASE_CREATE_AND_FOLDERS :: IF Exists",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "CASE :: IF Exists": {
+    "CASE_CREATE_AND_FOLDERS :: IF Exists": {
       "main": [
         [
           {
-            "node": "CASE :: Respond 409",
+            "node": "CASE_CREATE_AND_FOLDERS :: Respond 409",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "CASE :: Build Paths",
+            "node": "CASE_CREATE_AND_FOLDERS :: Build Paths",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "CASE :: Build Paths": {
+    "CASE_CREATE_AND_FOLDERS :: Build Paths": {
       "main": [
         [
           {
-            "node": "CASE :: DAV MKCOL Incoming",
+            "node": "CASE_CREATE_AND_FOLDERS :: DAV MKCOL Incoming",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "CASE :: DAV MKCOL Incoming": {
+    "CASE_CREATE_AND_FOLDERS :: DAV MKCOL Incoming": {
       "main": [
         [
           {
-            "node": "CASE :: DAV MKCOL Outgoing",
+            "node": "CASE_CREATE_AND_FOLDERS :: DAV MKCOL Outgoing",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "CASE :: DAV MKCOL Outgoing": {
+    "CASE_CREATE_AND_FOLDERS :: DAV MKCOL Outgoing": {
       "main": [
         [
           {
-            "node": "CASE :: DAV MKCOL Evidence",
+            "node": "CASE_CREATE_AND_FOLDERS :: DAV MKCOL Evidence",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "CASE :: DAV MKCOL Evidence": {
+    "CASE_CREATE_AND_FOLDERS :: DAV MKCOL Evidence": {
       "main": [
         [
           {
-            "node": "CASE :: GS Append Case",
+            "node": "CASE_CREATE_AND_FOLDERS :: GS Append Case",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "CASE :: GS Append Case": {
+    "CASE_CREATE_AND_FOLDERS :: GS Append Case": {
       "main": [
         [
           {
-            "node": "CASE :: GS Append Folders",
+            "node": "CASE_CREATE_AND_FOLDERS :: GS Append Folders",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "CASE :: GS Append Folders": {
+    "CASE_CREATE_AND_FOLDERS :: GS Append Folders": {
       "main": [
         [
           {
-            "node": "CASE :: Respond 201",
+            "node": "CASE_CREATE_AND_FOLDERS :: IF YC Mirror Enabled",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "INGEST :: Telegram Trigger": {
+    "CASE_CREATE_AND_FOLDERS :: IF YC Mirror Enabled": {
       "main": [
         [
           {
-            "node": "INGEST :: Parse",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "INGEST :: Parse": {
-      "main": [
-        [
-          {
-            "node": "INGEST :: GS Read Folders",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "INGEST :: GS Read Folders": {
-      "main": [
-        [
-          {
-            "node": "INGEST :: Match Case",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "INGEST :: Match Case": {
-      "main": [
-        [
-          {
-            "node": "INGEST :: IF Case Missing",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "INGEST :: IF Case Missing": {
-      "main": [
-        [
-          {
-            "node": "INGEST :: TG Case Not Found",
+            "node": "CASE_CREATE_AND_FOLDERS :: YC Mirror Case Upsert",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "INGEST :: TG getFile",
+            "node": "CASE_CREATE_AND_FOLDERS :: Respond 201",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "INGEST :: TG getFile": {
+    "CASE_CREATE_AND_FOLDERS :: YC Mirror Case Upsert": {
       "main": [
         [
           {
-            "node": "INGEST :: TG Download",
+            "node": "CASE_CREATE_AND_FOLDERS :: Respond 201",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "INGEST :: TG Download": {
+    "CASE_EVENT_CREATE :: Webhook Event": {
       "main": [
         [
           {
-            "node": "INGEST :: Safe Filename",
+            "node": "CASE_EVENT_CREATE :: Prepare",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "INGEST :: Safe Filename": {
+    "CASE_EVENT_CREATE :: Prepare": {
       "main": [
         [
           {
-            "node": "INGEST :: DAV Upload",
+            "node": "CASE_EVENT_CREATE :: Calendar Create",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "INGEST :: DAV Upload": {
+    "CASE_EVENT_CREATE :: Calendar Create": {
       "main": [
         [
           {
-            "node": "INGEST :: GS Append Document",
+            "node": "CASE_EVENT_CREATE :: GS Append Event",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "INGEST :: GS Append Document": {
+    "CASE_EVENT_CREATE :: GS Append Event": {
       "main": [
         [
           {
-            "node": "INGEST :: TG Ack",
+            "node": "CASE_EVENT_CREATE :: GS Append Reminder 24h",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "EVENT :: Webhook Event": {
+    "CASE_EVENT_CREATE :: GS Append Reminder 24h": {
       "main": [
         [
           {
-            "node": "EVENT :: Prepare",
+            "node": "CASE_EVENT_CREATE :: GS Append Reminder 2h",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "EVENT :: Prepare": {
+    "CASE_EVENT_CREATE :: GS Append Reminder 2h": {
       "main": [
         [
           {
-            "node": "EVENT :: Calendar Create",
+            "node": "CASE_EVENT_CREATE :: IF Client Payment Reminder",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "EVENT :: Calendar Create": {
+    "CASE_EVENT_CREATE :: IF Client Payment Reminder": {
       "main": [
         [
           {
-            "node": "EVENT :: GS Append Event",
+            "node": "CASE_EVENT_CREATE :: GS Append Client Payment Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CASE_EVENT_CREATE :: IF YC Mirror Enabled",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "EVENT :: GS Append Event": {
+    "CASE_EVENT_CREATE :: GS Append Client Payment Reminder": {
       "main": [
         [
           {
-            "node": "EVENT :: GS Append Reminder 24h",
+            "node": "CASE_EVENT_CREATE :: IF YC Mirror Enabled",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "EVENT :: GS Append Reminder 24h": {
+    "CASE_EVENT_CREATE :: IF YC Mirror Enabled": {
       "main": [
         [
           {
-            "node": "EVENT :: GS Append Reminder 2h",
+            "node": "CASE_EVENT_CREATE :: YC Mirror Event Upsert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CASE_EVENT_CREATE :: Respond 201",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "EVENT :: GS Append Reminder 2h": {
+    "CASE_EVENT_CREATE :: YC Mirror Event Upsert": {
       "main": [
         [
           {
-            "node": "EVENT :: Respond 201",
+            "node": "CASE_EVENT_CREATE :: Respond 201",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "REMIND :: Cron": {
+    "REMINDER_DISPATCH_CRON :: Cron": {
       "main": [
         [
           {
-            "node": "REMIND :: GS Read Reminders",
+            "node": "REMINDER_DISPATCH_CRON :: GS Read Reminders",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "REMIND :: GS Read Reminders": {
+    "REMINDER_DISPATCH_CRON :: GS Read Reminders": {
       "main": [
         [
           {
-            "node": "REMIND :: Filter Due",
+            "node": "REMINDER_DISPATCH_CRON :: GS Read Sent Log",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "REMIND :: Filter Due": {
+    "REMINDER_DISPATCH_CRON :: GS Read Sent Log": {
       "main": [
         [
           {
-            "node": "REMIND :: Split",
+            "node": "REMINDER_DISPATCH_CRON :: Filter Due",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "REMIND :: Split": {
+    "REMINDER_DISPATCH_CRON :: Filter Due": {
       "main": [
         [
           {
-            "node": "REMIND :: TG Send",
+            "node": "REMINDER_DISPATCH_CRON :: Split",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "REMIND :: TG Send": {
+    "REMINDER_DISPATCH_CRON :: Split": {
       "main": [
         [
           {
-            "node": "REMIND :: GS Sent Log",
+            "node": "REMINDER_DISPATCH_CRON :: TG Send",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "REMIND :: GS Sent Log": {
+    "REMINDER_DISPATCH_CRON :: TG Send": {
       "main": [
         [
           {
-            "node": "REMIND :: Split",
+            "node": "REMINDER_DISPATCH_CRON :: GS Sent Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "REMINDER_DISPATCH_CRON :: GS Sent Log": {
+      "main": [
+        [
+          {
+            "node": "REMINDER_DISPATCH_CRON :: IF YC Mirror Enabled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "REMINDER_DISPATCH_CRON :: IF YC Mirror Enabled": {
+      "main": [
+        [
+          {
+            "node": "REMINDER_DISPATCH_CRON :: YC Mirror Reminder Sent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "REMINDER_DISPATCH_CRON :: Split",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "REMINDER_DISPATCH_CRON :: YC Mirror Reminder Sent": {
+      "main": [
+        [
+          {
+            "node": "REMINDER_DISPATCH_CRON :: Split",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TELEGRAM_DOCUMENT_INGEST :: Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "TELEGRAM_DOCUMENT_INGEST :: Parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TELEGRAM_DOCUMENT_INGEST :: Parse": {
+      "main": [
+        [
+          {
+            "node": "TELEGRAM_DOCUMENT_INGEST :: GS Read Folders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TELEGRAM_DOCUMENT_INGEST :: GS Read Folders": {
+      "main": [
+        [
+          {
+            "node": "TELEGRAM_DOCUMENT_INGEST :: Match Case",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TELEGRAM_DOCUMENT_INGEST :: Match Case": {
+      "main": [
+        [
+          {
+            "node": "TELEGRAM_DOCUMENT_INGEST :: IF Case Missing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TELEGRAM_DOCUMENT_INGEST :: IF Case Missing": {
+      "main": [
+        [
+          {
+            "node": "TELEGRAM_DOCUMENT_INGEST :: TG Case Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "TELEGRAM_DOCUMENT_INGEST :: TG getFile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TELEGRAM_DOCUMENT_INGEST :: TG getFile": {
+      "main": [
+        [
+          {
+            "node": "TELEGRAM_DOCUMENT_INGEST :: TG Download",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TELEGRAM_DOCUMENT_INGEST :: TG Download": {
+      "main": [
+        [
+          {
+            "node": "TELEGRAM_DOCUMENT_INGEST :: Safe Filename",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TELEGRAM_DOCUMENT_INGEST :: Safe Filename": {
+      "main": [
+        [
+          {
+            "node": "TELEGRAM_DOCUMENT_INGEST :: DAV Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TELEGRAM_DOCUMENT_INGEST :: DAV Upload": {
+      "main": [
+        [
+          {
+            "node": "TELEGRAM_DOCUMENT_INGEST :: GS Append Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TELEGRAM_DOCUMENT_INGEST :: GS Append Document": {
+      "main": [
+        [
+          {
+            "node": "TELEGRAM_DOCUMENT_INGEST :: IF YC Mirror Enabled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TELEGRAM_DOCUMENT_INGEST :: IF YC Mirror Enabled": {
+      "main": [
+        [
+          {
+            "node": "TELEGRAM_DOCUMENT_INGEST :: YC Mirror Document Upsert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "TELEGRAM_DOCUMENT_INGEST :: TG Ack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TELEGRAM_DOCUMENT_INGEST :: YC Mirror Document Upsert": {
+      "main": [
+        [
+          {
+            "node": "TELEGRAM_DOCUMENT_INGEST :: TG Ack",
             "type": "main",
             "index": 0
           }
