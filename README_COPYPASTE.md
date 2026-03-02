@@ -11,25 +11,46 @@
 ## Как импортировать
 1. Рекомендуется: в n8n **Workflows → Import from File** и выбрать `workflows/WF_UNIFIED_LEGAL_AUTOMATION.json`.
 2. Альтернатива: импортировать по одному `WF_*.json`.
-2. Создайте credentials:
+3. Создайте credentials:
    - `nextcloud_webdav`
    - `telegram_main_bot`
    - `yandex_calendar_api`
    - `google_sheets_main`
-3. В Google Sheets создайте листы:
+4. В Google Sheets создайте листы:
    - `дела`
    - `папки_дел`
    - `документы`
    - `события_календаря`
    - `напоминания`
    - `журнал_отправки_напоминаний`
-4. Замените плейсхолдеры URL (`nextcloud.example.ru`, endpoint календаря).
+5. Замените плейсхолдеры URL (`nextcloud.example.ru`, endpoint календаря).
 
 > Примечание: `ALL_WORKFLOWS_BUNDLE.json` — это массив workflow-объектов. В ряде версий n8n Cloud импорт из редактора может не отрисовать его как один workflow. Используйте `WF_UNIFIED_LEGAL_AUTOMATION.json` для надёжного импорта одним файлом.
 
 
+### Для новичка: главный вопрос про Nextcloud (без воды)
+- **Да, URL хоста можно брать из VM Yandex Cloud** — это ваш публичный IP/домен, по которому открывается Nextcloud.
+- **Нет, app-password Nextcloud не берётся из VM** — его нужно создать в самом Nextcloud: `Аватар → Settings → Security → App passwords`.
+- В credential `nextcloud_webdav` заполняете так:
+  - `Username`: ваш логин Nextcloud;
+  - `Password`: app-password из Nextcloud;
+  - `Base URL/Host`: `https://<ваш_nextcloud_домен>` (или временно IP).
+
 ## Какие данные именно брать из виртуальной машины (Yandex Cloud)
 Короткий ответ: **напрямую из строки VM в ноды почти ничего не вставляется**, кроме адресов ваших сервисов, которые крутятся на этой VM.
+
+### Ответ на ваш вопрос в одном блоке (очень коротко)
+- **URL хоста для Nextcloud**: берёте **не из n8n**, а из того адреса, по которому реально открывается ваш Nextcloud.
+  - Если домен уже настроен: `https://nextcloud.<ваш-домен>`.
+  - Если домена пока нет: временно можно `http://<Публичный_IP_VM>` (или `https://`, если уже настроен TLS).
+- **App-password Nextcloud**: берёте **не из Yandex Cloud VM**, а создаёте в самом Nextcloud:
+  - `Аватар (правый верх) → Settings (Личные настройки) → Security → Devices & sessions / App passwords → Create new app password`.
+  - В n8n credential `nextcloud_webdav`: `Username = ваш Nextcloud пользователь`, `Password = этот app-password`.
+- **Из VM Yandex Cloud** обычно берёте только:
+  - публичный IP (или понимаете, какой домен указывает на VM),
+  - SSH-доступ, чтобы администрировать сервер.
+
+Итого: **IP/домен — да, может прийти из VM; app-password — только из интерфейса Nextcloud**.
 
 Что из VM реально нужно:
 
@@ -76,7 +97,7 @@
 2. **Production URL из webhook-нод**
    - Берёте прямо в нодах `Webhook Case Create` и `Webhook Event` (вкладка Production URL).
    - Эти URL вставляете в CRM/сайт/форму, которая отправляет POST-запросы.
-   - IP VM в webhook-ноду вручную не вставляется, он уже входит в URL вашего n8n-домена/хоста.
+   - IP VM в webhook-ноду вручную не втавляется, он уже входит в URL вашего n8n-домена/хоста.
 
 ### НЕ копируем в ноды
 - `Внутренний IPv4 (10.130.0.6)` — не нужен для внешних webhook и обычно не нужен в текущих нодах.
@@ -212,7 +233,7 @@
 
 ---
 
-### 3.1) Очень простая настройка по нодам (для новичка, без кода)
+### 3.1) Очень простая настройка по нода (для новичка, без кода)
 Ниже — что открыть и что вставить, буквально по шагам.
 
 #### WF 1: CASE_CREATE_AND_FOLDERS (создание дела)
@@ -269,6 +290,37 @@
 ---
 
 ## Шпаргалка «нода → строка → что вставить → откуда взять» (без лишних пояснений)
+
+### Супер-формат (Node → Field → Value → Source) для самых частых ошибок
+
+| Node | Field | Value | Source |
+|---|---|---|---|
+| `CASE_CREATE_AND_FOLDERS :: DAV MKCOL Incoming` | `URL` | `https://<NEXTCLOUD>/remote.php/dav/files/<USER>{{$json.incoming}}` | ваш Nextcloud домен/IP + username |
+| `CASE_CREATE_AND_FOLDERS :: DAV MKCOL Outgoing` | `URL` | `https://<NEXTCLOUD>/remote.php/dav/files/<USER>{{$json.outgoing}}` | ваш Nextcloud домен/IP + username |
+| `CASE_CREATE_AND_FOLDERS :: DAV MKCOL Evidence` | `URL` | `https://<NEXTCLOUD>/remote.php/dav/files/<USER>{{$json.evidence}}` | ваш Nextcloud домен/IP + username |
+| `TELEGRAM_DOCUMENT_INGEST :: DAV Upload` | `URL` | `https://<NEXTCLOUD>/remote.php/dav/files/<USER>{{$json.folder_path}}/{{$json.stored_filename}}` | ваш Nextcloud домен/IP + username |
+| `* DAV ...` (все Nextcloud HTTP ноды) | `Credential` | `nextcloud_webdav` | n8n Credentials |
+| `* GS ...` | `Sheet ID` | `={{$env.GSHEET_ID}}` | `Settings → Variables` |
+| `* GS ...` | `Credential` | `google_sheets_main` | n8n Credentials |
+| `* Telegram ...` | `Credential` | `telegram_main_bot` | токен BotFather |
+| `CASE_EVENT_CREATE :: Calendar Create` | `Credential` | `yandex_calendar_api` | ваш API token/header |
+
+> Формат ниже сделан специально для новичка: открыл ноду → нашёл поле → вставил значение.
+
+### Сначала заполните 4 credentials (один раз)
+- `nextcloud_webdav`:
+  - Host/Base URL: `https://<ваш-nextcloud-домен>` (или временно IP VM).
+  - Username: `<пользователь nextcloud>`.
+  - Password: `<app-password из Nextcloud Security>`.
+- `google_sheets_main`: OAuth/Service Account с доступом на редактирование таблицы.
+- `telegram_main_bot`: токен бота от BotFather.
+- `yandex_calendar_api`: bearer token/API ключ вашего календарного API.
+
+### Где именно брать URL и пароль Nextcloud
+- URL: откройте Nextcloud в браузере. Всё до `/remote.php/...` — это ваш host URL.
+  - пример: если в браузере `https://cloud.example.ru/apps/files/`, то host URL = `https://cloud.example.ru`.
+- App-password: в самом Nextcloud (`Settings → Security → App passwords`).
+- В Yandex Cloud VM **нет** поля, где лежит app-password Nextcloud.
 
 ### CASE_CREATE_AND_FOLDERS :: Webhook Case Create
 - HTTP Method → `POST` → вручную (как указано).
@@ -481,7 +533,7 @@
 - `GS Read Sent Log` — range `журнал_отправки_напоминаний!A:D`.
 - `TG Send` — credential `telegram_main_bot`.
 - `GS Sent Log` — range `журнал_отправки_напоминаний!A:D`.
-- `IF YC Mirror Enabled` / `YC Mirror Reminder Sent` — только при mirror.
+- `IF YC Mirror Enabled` / `YC Mirror Reminder Sent` — толко при mirror.
 
 #### TELEGRAM_DOCUMENT_INGEST
 - `Telegram Trigger` — credential `telegram_main_bot`.
@@ -556,183 +608,3 @@
   "jurisdiction": "msk",
   "status": "new"
 }
-```
-
-`POST /case/event/create`:
-```json
-{
-  "case_code": "C-2026-001",
-  "event_type": "court_hearing",
-  "start_at": "2026-03-10T10:00:00+03:00",
-  "end_at": "2026-03-10T10:30:00+03:00",
-  "timezone": "Europe/Moscow",
-  "lawyer_chat_id": "123456789"
-}
-```
-
-#### Рекомендуемая защита (после запуска)
-Когда убедитесь, что всё работает:
-- добавьте секрет в заголовок (например `X-Webhook-Token`) через reverse proxy или отдельную проверку в начале потока;
-- либо переключите `Authentication` с `None` на защищённый вариант (если используете его в вашей схеме).
-
----
-
-### 4) Какие ноды ещё часто забывают донастроить
-- `Webhook Case Create` и `Webhook Event`:
-  - проверьте итоговые public URL вебхуков (домен n8n, reverse proxy, TLS).
-- `REMIND ... Cron`:
-  - проверьте интервал (сейчас 15 минут) и timezone инстанса n8n.
-- Все Google Sheets ноды (`GS Read/Append ...`):
-  - проверьте, что везде стоит один и тот же `GSHEET_ID` и credential `google_sheets_main`.
-
-Быстрый smoke-test после настройки:
-1. Создать дело через `/case/create`.
-2. Отправить в Telegram фото или PDF с номером дела в подписи.
-3. Создать событие через `/case/event/create`.
-4. Убедиться, что напоминание появилось в `напоминания`, а после cron — в `журнал_отправки_напоминаний`.
-
-
-## Важно
-- Этот вариант дешевле, но хуже по управляемости, чем БД.
-- Не используйте ФИО/детали дела в названиях файлов — только коды дел.
-- Для 152‑ФЗ хранение клиентских ПДн в Google Sheets юридически рискованно; если есть ПДн, используйте РФ‑хранилище.
-
-## Полное обновление локально + удалённо одним скриптом
-Используйте `scripts_sync_and_bundle.ps1`:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts_sync_and_bundle.ps1 -RepoPath "C:\Users\HP\Desktop\Vardkesovna" -RepoUrl "https://github.com/alexdmitrievi/Vardkesonva.git" -Branch main -PushToRemote
-```
-
-Что делает скрипт:
-1. Синхронизирует локальный репозиторий с GitHub (`fetch`, `reset --hard`, `clean -fd`).
-2. Собирает один файл `workflows/ALL_WORKFLOWS_BUNDLE.json` из отдельных `WF_*.json` (без повторного включения уже готового `WF_UNIFIED_LEGAL_AUTOMATION.json`).
-3. При флаге `-PushToRemote` коммитит и пушит bundle в GitHub.
-
-## Импорт одним файлом в n8n
-В n8n: **Workflows → Import from File** и выберите файл:
-- `workflows/WF_UNIFIED_LEGAL_AUTOMATION.json`
-
-Текущая ревизия unified-файла в репозитории: `versionId = "2"` (обновлённая сборка).
-
-
-## FAQ: Не слишком ли много нод в `WF_UNIFIED_LEGAL_AUTOMATION.json`?
-Короткий ответ: **нет, это ожидаемо** для unified-варианта.
-
-- В этом файле объединены **4 независимых сценария** (Case Create, Telegram Ingest, Event Create, Reminder Cron), поэтому граф визуально большой.
-- Для текущей версии нормальный ориентир: около **48 nodes** и **43 connections**.
-- В unified-файле есть **4 стартовых триггера** (`CASE`, `INGEST`, `EVENT`, `REMIND`) — это признак, что объединение собрано корректно.
-
-Когда стоит разделять: 
-- если команде тяжело сопровождать один большой граф;
-- если нужно раздать права на отдельные процессы разным людям;
-- если хотите упростить отладку и версионирование.
-
-Практика для production: хранить оба формата — `WF_UNIFIED_*` (быстрый импорт одним файлом) и отдельные `WF_*.json` (удобная поддержка).
-
-
-## Проверка соответствия вашим задачам
-- ✅ Приём файлов в Telegram: поддержаны **фото**, **PDF**, **DOC/DOCX**, **TXT**.
-- ✅ Привязка к делу: файл уходит в папку `01_Incoming` по `case_code`/номеру дела.
-- ✅ Напоминания юристам: создаются при событии по делу (по умолчанию за 24ч и 2ч до процесса/дедлайна).
-- ✅ Напоминания клиентам об оплате: создаются, если в `POST /case/event/create` переданы `client_chat_id` и `payment_due_at` (опционально `payment_amount`).
-- ✅ Защита от повторной отправки напоминаний: cron исключает уже отправленные `id_напоминания` из `журнал_отправки_напоминаний`.
-
-### Минимальный payload для напоминания клиенту об оплате
-```json
-{
-  "case_code": "C-2026-001",
-  "event_type": "payment_due",
-  "start_at": "2026-03-10T10:00:00+03:00",
-  "end_at": "2026-03-10T10:30:00+03:00",
-  "timezone": "Europe/Moscow",
-  "lawyer_chat_id": "123456789",
-  "client_chat_id": "987654321",
-  "payment_due_at": "2026-03-09T10:00:00+03:00",
-  "payment_amount": "15000 RUB"
-}
-```
-
-## Интеграция с Yandex Cloud (после создания VM)
-Рекомендуемый production-путь под 152-ФЗ:
-1. Оставить `n8n` и Nextcloud на вашей VM в Yandex Cloud.
-2. Перенести метаданные дел из Google Sheets в **Managed Service for PostgreSQL** (или YDB), размещённый в РФ-регионе.
-3. Поднять небольшой backend/API (например, FastAPI) на VM или в Serverless Containers, который пишет/читает метаданные в PostgreSQL.
-4. В workflow включить зеркалирование в Yandex Cloud через env:
-   - `YC_METADATA_MIRROR=1`
-   - `YC_METADATA_API_URL=https://<ваш-api-домен>`
-   - credential `yc_backend_api` (HTTP Header Auth, bearer token).
-
-Что уже добавлено в workflow:
-- условные узлы `IF YC Mirror Enabled`;
-- HTTP-узлы `YC Mirror ...` для дел, документов, событий и лога отправленных напоминаний;
-- если mirror выключен, workflow работает как раньше (через Google Sheets).
-
-Это позволяет мигрировать поэтапно: сначала dual-write (Sheets + Yandex), затем полный переход на PostgreSQL.
-
-## Нужно ли соединять 4 ветки между собой?
-Коротко: **нет, в unified-файле это должны быть 4 отдельные ветки**.
-
-Почему так:
-- у каждой ветки свой триггер (`Webhook Case Create`, `Webhook Event`, `Cron`, `Telegram Trigger`);
-- это 4 независимых бизнес-процесса, которые запускаются в разное время и разными источниками;
-- если соединить их в одну цепочку, появятся ложные запуски и побочные эффекты (например, cron может случайно тащить ветку ingest).
-
-Когда их можно связывать:
-- только через **данные** (Google Sheets/PostgreSQL/API), а не прямым проводом node→node;
-- либо через явный `Execute Workflow`/Webhook-вызов для осознанной оркестрации.
-
-Рекомендация:
-- в `WF_UNIFIED_LEGAL_AUTOMATION.json` держать 4 изолированные дорожки на одном canvas (как сейчас),
-- для сопровождения в production хранить также отдельные `WF_*.json`.
-
-## Про "красивые" связи и чтобы ноды не накладывались
-Да, можно сделать **полуавтоматически** (не только вручную):
-- при сборке unified-файла скрипт раскладывает каждый подпроцесс в отдельную "дорожку" (lane) по `Y`;
-- позиции нод внутри каждого подпроцесса нормализуются и сдвигаются, чтобы блоки не наслаивались.
-
-Что важно:
-- n8n не гарантирует идеальный auto-layout для сложных графов;
-- после импорта иногда всё равно полезен лёгкий ручной "косметический" тюнинг 2–3 узлов.
-
-То есть базово — автоматом, финальный визуальный полиш — по желанию вручную.
-
-## Как правильно скопировать файл из GitHub (кнопка с тремя точками)
-Если открыли diff файла в GitHub и видите меню:
-- `Скопировать применение git`
-- `Скопировать патч`
-- `Скопировать файл`
-
-То для вставки **полного содержимого файла** (в локальный `.json` или при ручном редактировании файла в GitHub) нажимайте:
-
-- ✅ **`Скопировать файл`**
-
-Что делают другие пункты:
-- `Скопировать патч` — копирует diff (изменения со знаками `+/-`), это не готовый JSON-файл.
-- `Скопировать применение git` — копирует команду/инструкцию для применения изменений через git.
-
-### В локальную папку (Windows)
-1. Нажмите `Скопировать файл` в GitHub.
-2. Откройте Блокнот/VS Code.
-3. Вставьте (`Ctrl+V`).
-4. Сохраните как `workflows/WF_UNIFIED_LEGAL_AUTOMATION.json` (UTF-8).
-
-### Прямо в GitHub-файл
-1. Откройте нужный файл в репозитории.
-2. Нажмите `Edit` (иконка карандаша).
-3. Выделите всё содержимое (`Ctrl+A`) и вставьте скопированное через `Скопировать файл` (`Ctrl+V`).
-4. Commit changes.
-
-Быстрая проверка, что вставился именно полный workflow (а не патч):
-
-```powershell
-$obj = Get-Content .\workflows\WF_UNIFIED_LEGAL_AUTOMATION.json -Raw | ConvertFrom-Json
-"nodes=" + $obj.nodes.Count
-"connections=" + ($obj.connections.PSObject.Properties).Count
-```
-
-Если `nodes` десятки и `connections` больше 10 — обычно файл вставлен корректно.
-
-### Если в Cursor/PowerShell видите ошибку `git : Already on 'main'`
-Это не критическая ошибка git, а особенность PowerShell при обработке stderr native-команд.
-Обновите скрипт из репозитория до актуальной версии и запустите снова — в текущей версии это обработано.
