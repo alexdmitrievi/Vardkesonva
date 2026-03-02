@@ -28,6 +28,38 @@
 > Примечание: `ALL_WORKFLOWS_BUNDLE.json` — это массив workflow-объектов. В ряде версий n8n Cloud импорт из редактора может не отрисовать его как один workflow. Используйте `WF_UNIFIED_LEGAL_AUTOMATION.json` для надёжного импорта одним файлом.
 
 
+## Какие данные именно брать из виртуальной машины (Yandex Cloud)
+Короткий ответ: **напрямую из строки VM в ноды почти ничего не вставляется**, кроме адресов ваших сервисов, которые крутятся на этой VM.
+
+Что из VM реально нужно:
+
+1) **Публичный IP или домен VM**
+- нужен для доступа к вашим сервисам (n8n, Nextcloud, ваш API).
+- примеры, куда вставлять:
+  - в Nextcloud нодах (`DAV MKCOL...`, `DAV Upload`) вместо `nextcloud.example.ru`;
+  - во внешние системы как webhook base URL n8n (если n8n стоит на этой VM);
+  - в `YC_METADATA_API_URL`, если mirror API у вас на этой VM.
+
+2) **Порты сервисов на VM**
+- обычно: `5678` (n8n), `443/80` (через reverse proxy), ваш порт API (например `8000`).
+- в ноды порты вручную не вносятся, но должны быть корректно отражены в URL, который вы вставляете.
+
+3) **Ничего из внутренних полей VM типа `Внутренний IPv4`, `vCPU`, `RAM` в ноды не вставляется**
+- это инфраструктурные параметры, не параметры workflow.
+
+---
+
+### Мини‑чеклист «что вставить куда»
+- В ноды Nextcloud (`DAV ...`) → URL вашего Nextcloud на VM + credential `nextcloud_webdav`.
+- В webhook-ноды ничего вручную не вставляете, но копируете их **Production URL** и вставляете во внешнюю систему.
+- В `YC_METADATA_API_URL` (Variables) → URL вашего API на VM, например `https://<ваш-домен>/api`.
+- В `GSHEET_ID` → только ID таблицы Google Sheets (не связан с VM).
+- В Telegram/Calendar credentials → токены/ключи сервисов (не из VM-строки).
+
+Если у вас сейчас только VM без домена:
+- временно можно использовать публичный IP,
+- для production лучше домен + HTTPS (Nginx/Caddy + сертификат).
+
 ## Что импортировать в n8n: `WF_UNIFIED_LEGAL_AUTOMATION.json` или `ALL_WORKFLOWS_BUNDLE.json`?
 Коротко:
 - Для обычной работы в n8n UI/Cloud импортируйте **`WF_UNIFIED_LEGAL_AUTOMATION.json`**.
@@ -186,6 +218,132 @@
    - Range: `журнал_отправки_напоминаний!A:D`.
 4. `TG Send`:
    - Credential: `telegram_main_bot`.
+
+---
+
+## Какие ноды настраиваем, а какие не трогаем
+Ниже — правило для первого запуска: **настраиваем только то, где меняются ваши URL/ключи/credentials**, остальное не трогаем.
+
+### 1) В эти ноды заходим и настраиваем
+
+#### CASE_CREATE_AND_FOLDERS
+- `Webhook Case Create` — берём Production URL для внешней системы.
+- `GS Read Cases` — credential `google_sheets_main`, range `дела!A:G`.
+- `DAV MKCOL Incoming` — ваш домен Nextcloud + credential `nextcloud_webdav`.
+- `DAV MKCOL Outgoing` — ваш домен Nextcloud + credential `nextcloud_webdav`.
+- `DAV MKCOL Evidence` — ваш домен Nextcloud + credential `nextcloud_webdav`.
+- `GS Append Case` — credential `google_sheets_main`, range `дела!A:G`.
+- `GS Append Folders` — credential `google_sheets_main`, range `папки_дел!A:E`.
+- `IF YC Mirror Enabled` / `YC Mirror Case Upsert` — только если включаете mirror (`YC_METADATA_MIRROR=1`).
+
+#### CASE_EVENT_CREATE
+- `Webhook Event` — берём Production URL для внешней системы.
+- `Calendar Create` — endpoint + credential `yandex_calendar_api`.
+- `GS Append Event` — range `события_календаря!A:G`.
+- `GS Append Reminder 24h` — range `напоминания!A:H`.
+- `GS Append Reminder 2h` — range `напоминания!A:H`.
+- `GS Append Client Payment Reminder` — range `напоминания!A:H`.
+- `IF YC Mirror Enabled` / `YC Mirror Event Upsert` — только при mirror.
+
+#### REMINDER_DISPATCH_CRON
+- `Cron` — при необходимости меняете интервал (по умолчанию 15 минут).
+- `GS Read Reminders` — range `напоминания!A:H`.
+- `GS Read Sent Log` — range `журнал_отправки_напоминаний!A:D`.
+- `TG Send` — credential `telegram_main_bot`.
+- `GS Sent Log` — range `журнал_отправки_напоминаний!A:D`.
+- `IF YC Mirror Enabled` / `YC Mirror Reminder Sent` — только при mirror.
+
+#### TELEGRAM_DOCUMENT_INGEST
+- `Telegram Trigger` — credential `telegram_main_bot`.
+- `GS Read Folders` — range `папки_дел!A:E`.
+- `DAV Upload` — ваш домен Nextcloud + credential `nextcloud_webdav`.
+- `GS Append Document` — range `документы!A:H`.
+- `TG Case Not Found` / `TG Ack` — credential `telegram_main_bot`.
+- `IF YC Mirror Enabled` / `YC Mirror Document Upsert` — только при mirror.
+
+### 2) В эти ноды обычно НЕ лезем (оставляем как есть)
+- Code-ноды:
+  - `Check Case Code`, `Build Paths`, `Parse`, `Match Case`, `Safe Filename`, `Prepare`, `Filter Due`.
+- Внутренние роутеры/логика:
+  - `IF Exists`, `IF Case Missing`, `IF Client Payment Reminder`, `Split`.
+- Технические Telegram HTTP-ноды:
+  - `TG getFile`, `TG Download`.
+- Ответы webhook:
+  - `Respond 409`, `Respond 201`.
+
+Если в этих нодах менять поля без необходимости, можно случайно сломать весь поток.
+
+### 3) Простой принцип
+- Меняем: **URL, credentials, ranges, переменные окружения**.
+- Не меняем: **JS-код, ветвления, внутренние связи и response-ноды**, если нет отдельной задачи на разработку.
+
+---
+
+### 3.2) Как настроить именно эти 2 webhook-ноды (со скриншотов)
+Речь про ноды:
+- `CASE_CREATE_AND_FOLDERS :: Webhook Case Create`
+- `CASE_EVENT_CREATE :: Webhook Event`
+
+Сделайте одинаково по шагам:
+
+#### A. `Webhook Case Create`
+1. Откройте ноду → вкладка **Parameters**.
+2. Проверьте поля:
+   - **HTTP Method**: `POST`
+   - **Path**: `case/create`
+   - **Authentication**: `None` (минимум для старта)
+   - **Respond**: `Using 'Respond to Webhook' Node`
+3. Нажмите **Test URL**:
+   - для проверки вручную используйте URL вида `/webhook-test/case/create`.
+4. Для рабочего режима используйте **Production URL**:
+   - URL вида `/webhook/case/create`.
+5. Нажмите **Save** у workflow и переключите workflow в **Active**.
+
+#### B. `Webhook Event`
+1. Откройте ноду → **Parameters**.
+2. Проверьте поля:
+   - **HTTP Method**: `POST`
+   - **Path**: `case/event/create`
+   - **Authentication**: `None` (минимум для старта)
+   - **Respond**: `Using 'Respond to Webhook' Node`
+3. Для тестов используйте **Test URL** (`/webhook-test/case/event/create`).
+4. Для продакшена используйте **Production URL** (`/webhook/case/event/create`).
+5. Сохраните workflow и включите **Active**.
+
+#### Важно про Test URL vs Production URL
+- **Test URL** работает только когда вы нажали `Listen for test event` и обычно ограниченно по времени.
+- **Production URL** работает постоянно (когда workflow активен).
+- В вашем внешнем сервисе (CRM/форма/сайт) нужно вставлять именно **Production URL**.
+
+#### Что отправлять в эти webhook (готовые примеры)
+`POST /case/create`:
+```json
+{
+  "case_code": "C-2026-001",
+  "client_ref": "CLIENT-01",
+  "lawyer_ref": "LAWYER-01",
+  "case_type": "civil",
+  "jurisdiction": "msk",
+  "status": "new"
+}
+```
+
+`POST /case/event/create`:
+```json
+{
+  "case_code": "C-2026-001",
+  "event_type": "court_hearing",
+  "start_at": "2026-03-10T10:00:00+03:00",
+  "end_at": "2026-03-10T10:30:00+03:00",
+  "timezone": "Europe/Moscow",
+  "lawyer_chat_id": "123456789"
+}
+```
+
+#### Рекомендуемая защита (после запуска)
+Когда убедитесь, что всё работает:
+- добавьте секрет в заголовок (например `X-Webhook-Token`) через reverse proxy или отдельную проверку в начале потока;
+- либо переключите `Authentication` с `None` на защищённый вариант (если используете его в вашей схеме).
 
 ---
 
