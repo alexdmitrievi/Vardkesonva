@@ -17,16 +17,34 @@
    - `yandex_calendar_api`
    - `google_sheets_main`
 3. В Google Sheets создайте листы:
-   - `cases`
-   - `case_folders`
-   - `documents`
-   - `calendar_events`
-   - `reminders`
-   - `reminders_sent_log`
+   - `дела`
+   - `папки_дел`
+   - `документы`
+   - `события_календаря`
+   - `напоминания`
+   - `журнал_отправки_напоминаний`
 4. Замените плейсхолдеры URL (`nextcloud.example.ru`, endpoint календаря).
 
 > Примечание: `ALL_WORKFLOWS_BUNDLE.json` — это массив workflow-объектов. В ряде версий n8n Cloud импорт из редактора может не отрисовать его как один workflow. Используйте `WF_UNIFIED_LEGAL_AUTOMATION.json` для надёжного импорта одним файлом.
 
+
+## Что импортировать в n8n: `WF_UNIFIED_LEGAL_AUTOMATION.json` или `ALL_WORKFLOWS_BUNDLE.json`?
+Коротко:
+- Для обычной работы в n8n UI/Cloud импортируйте **`WF_UNIFIED_LEGAL_AUTOMATION.json`**.
+- `ALL_WORKFLOWS_BUNDLE.json` — это технический bundle-массив из нескольких workflow-объектов, не один workflow-граф.
+
+Разница:
+1. `WF_UNIFIED_LEGAL_AUTOMATION.json`
+   - один JSON-объект одного workflow;
+   - 4 ветки в одном canvas;
+   - самый надёжный вариант для `Import from File`.
+
+2. `ALL_WORKFLOWS_BUNDLE.json`
+   - JSON-массив из отдельных `WF_*.json`;
+   - полезен как артефакт сборки/резервная упаковка;
+   - в части версий n8n может импортироваться не так наглядно, как unified-файл.
+
+Итого: в вашем сценарии нажимайте **Import from File → `WF_UNIFIED_LEGAL_AUTOMATION.json`**.
 
 ## Чёткая инструкция: что именно донастроить после импорта
 
@@ -41,28 +59,30 @@
 ### 2) Создайте Google Sheets строго с этими листами и колонками
 Откройте Google Sheets и создайте 6 листов. В **первой строке** каждого листа укажите заголовки **в таком порядке**:
 
-1. `cases`
-   - `case_code`, `client_ref`, `lawyer_ref`, `case_type`, `jurisdiction`, `status`, `created_at`
+1. `дела`
+   - `код_дела`, `клиент_id`, `юрист_id`, `тип_дела`, `юрисдикция`, `статус`, `создано_в`
 
-2. `case_folders`
-   - `case_code`, `incoming_path`, `outgoing_path`, `evidence_path`, `created_at`
+2. `папки_дел`
+   - `код_дела`, `путь_входящие`, `путь_исходящие`, `путь_доказательства`, `создано_в`
 
-3. `documents`
-   - `doc_id`, `case_code`, `uploaded_by_telegram_id`, `stored_filename`, `storage_path`, `mime_type`, `size_bytes`, `uploaded_at`
+3. `документы`
+   - `id_документа`, `код_дела`, `telegram_id_отправителя`, `имя_файла_в_хранилище`, `путь_в_хранилище`, `mime_тип`, `размер_байт`, `загружено_в`
 
-4. `calendar_events`
-   - `event_id`, `case_code`, `event_type`, `start_at`, `end_at`, `external_event_id`, `created_at`
+4. `события_календаря`
+   - `id_события`, `код_дела`, `тип_события`, `начало`, `конец`, `внешний_id_события`, `создано_в`
 
-5. `reminders`
-   - `reminder_id`, `event_id`, `recipient_role`, `telegram_chat_id`, `message_text`, `send_at`, `status`, `sent_at`
+5. `напоминания`
+   - `id_напоминания`, `id_события`, `роль_получателя`, `telegram_chat_id`, `текст_сообщения`, `отправить_в`, `статус`, `отправлено_в`
 
-6. `reminders_sent_log`
-   - `reminder_id`, `sent_at`, `recipient_role`, `status`
+6. `журнал_отправки_напоминаний`
+   - `id_напоминания`, `отправлено_в`, `роль_получателя`, `статус`
 
 Важно:
 - названия листов должны совпадать **буква в букву**;
-- порядок колонок желательно оставить как выше, чтобы проще сверять данные;
+- названия полей в первой строке должны совпадать **буква в букву**;
 - Google credential должен иметь доступ на edit к этой таблице.
+
+Если хотите английские названия — можно, но тогда нужно массово менять `range` и ключи полей во всех Google Sheets/Code-нодах.
 
 ---
 
@@ -113,6 +133,62 @@
 
 ---
 
+### 3.1) Очень простая настройка по нодам (для новичка, без кода)
+Ниже — что открыть и что вставить, буквально по шагам.
+
+#### WF 1: CASE_CREATE_AND_FOLDERS (создание дела)
+1. `Webhook Case Create`:
+   - ничего не меняйте, просто скопируйте Production URL (понадобится вашему сайту/форме).
+2. `GS Read Cases`:
+   - Credential: `google_sheets_main`;
+   - Sheet ID: `={{$env.GSHEET_ID}}` (не трогать);
+   - Range: `дела!A:G`.
+3. `DAV MKCOL Incoming`, `DAV MKCOL Outgoing`, `DAV MKCOL Evidence`:
+   - URL должен указывать на ваш Nextcloud домен (не `nextcloud.example.ru`);
+   - Credential: `nextcloud_webdav`.
+4. `GS Append Case` и `GS Append Folders`:
+   - Credential: `google_sheets_main`;
+   - Range: `дела!A:G` и `папки_дел!A:E`.
+5. `IF YC Mirror Enabled` и `YC Mirror Case Upsert`:
+   - на старте можно не трогать (работают только если `YC_METADATA_MIRROR=1`).
+
+#### WF 2: TELEGRAM_DOCUMENT_INGEST (приём файлов из Telegram)
+1. `Telegram Trigger`:
+   - Credential: `telegram_main_bot`.
+2. `GS Read Folders`:
+   - Range: `папки_дел!A:E`.
+3. `TG getFile` и `TG Download`:
+   - ничего не менять (берут токен из Telegram credential автоматически).
+4. `DAV Upload`:
+   - проверьте домен Nextcloud в URL + credential `nextcloud_webdav`.
+5. `GS Append Document`:
+   - Range: `документы!A:H`.
+6. `TG Ack` / `TG Case Not Found`:
+   - Credential: `telegram_main_bot`.
+
+#### WF 3: CASE_EVENT_CREATE (события и напоминания)
+1. `Webhook Event`:
+   - скопируйте Production URL и используйте его в системе, которая создаёт события.
+2. `Calendar Create`:
+   - URL календаря: ваш рабочий endpoint;
+   - Credential: `yandex_calendar_api`.
+3. `GS Append Event`:
+   - Range: `события_календаря!A:G`.
+4. `GS Append Reminder 24h`, `GS Append Reminder 2h`, `GS Append Client Payment Reminder`:
+   - Range везде: `напоминания!A:H`.
+
+#### WF 4: REMINDER_DISPATCH_CRON (рассылка напоминаний)
+1. `Cron`:
+   - интервал сейчас 15 минут (можете изменить).
+2. `GS Read Reminders`:
+   - Range: `напоминания!A:H`.
+3. `GS Read Sent Log` и `GS Sent Log`:
+   - Range: `журнал_отправки_напоминаний!A:D`.
+4. `TG Send`:
+   - Credential: `telegram_main_bot`.
+
+---
+
 ### 4) Какие ноды ещё часто забывают донастроить
 - `Webhook Case Create` и `Webhook Event`:
   - проверьте итоговые public URL вебхуков (домен n8n, reverse proxy, TLS).
@@ -125,7 +201,7 @@
 1. Создать дело через `/case/create`.
 2. Отправить в Telegram фото или PDF с номером дела в подписи.
 3. Создать событие через `/case/event/create`.
-4. Убедиться, что reminder ушёл в `reminders`, а после cron — в `reminders_sent_log`.
+4. Убедиться, что напоминание появилось в `напоминания`, а после cron — в `журнал_отправки_напоминаний`.
 
 
 ## Важно
@@ -149,6 +225,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts_sync_and_bundle.ps1 -RepoPath
 В n8n: **Workflows → Import from File** и выберите файл:
 - `workflows/WF_UNIFIED_LEGAL_AUTOMATION.json`
 
+Текущая ревизия unified-файла в репозитории: `versionId = "2"` (обновлённая сборка).
+
 
 ## FAQ: Не слишком ли много нод в `WF_UNIFIED_LEGAL_AUTOMATION.json`?
 Короткий ответ: **нет, это ожидаемо** для unified-варианта.
@@ -170,7 +248,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts_sync_and_bundle.ps1 -RepoPath
 - ✅ Привязка к делу: файл уходит в папку `01_Incoming` по `case_code`/номеру дела.
 - ✅ Напоминания юристам: создаются при событии по делу (по умолчанию за 24ч и 2ч до процесса/дедлайна).
 - ✅ Напоминания клиентам об оплате: создаются, если в `POST /case/event/create` переданы `client_chat_id` и `payment_due_at` (опционально `payment_amount`).
-- ✅ Защита от повторной отправки напоминаний: cron исключает уже отправленные `reminder_id` из `reminders_sent_log`.
+- ✅ Защита от повторной отправки напоминаний: cron исключает уже отправленные `id_напоминания` из `журнал_отправки_напоминаний`.
 
 ### Минимальный payload для напоминания клиенту об оплате
 ```json
