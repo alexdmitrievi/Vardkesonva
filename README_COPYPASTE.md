@@ -268,6 +268,77 @@
 
 ---
 
+## Какие ноды у нас относятся к Nextcloud (очень простыми словами)
+Ниже все ноды, которые работают именно с Nextcloud (WebDAV).
+
+### Что такое Nextcloud-ноды в этом проекте
+Это ноды, где в URL есть ваш Nextcloud и путь вида:
+- `/remote.php/dav/files/...`
+
+Они делают 2 вещи:
+1. создают папки дела;
+2. загружают файл в папку дела.
+
+---
+
+### 1) Ноды создания папок (workflow `CASE_CREATE_AND_FOLDERS`)
+Эти 3 ноды — Nextcloud:
+1. `DAV MKCOL Incoming`
+2. `DAV MKCOL Outgoing`
+3. `DAV MKCOL Evidence`
+
+Что они делают простыми словами:
+- `Incoming` — создаёт папку для входящих документов.
+- `Outgoing` — создаёт папку для исходящих документов.
+- `Evidence` — создаёт папку для доказательств.
+
+Как их настроить:
+- откройте каждую ноду;
+- в поле `URL` замените `nextcloud.example.ru` на ваш домен/IP Nextcloud;
+- в `Credentials` выберите `nextcloud_webdav`.
+
+---
+
+### 2) Нода загрузки файла (workflow `TELEGRAM_DOCUMENT_INGEST`)
+Эта нода — Nextcloud:
+- `DAV Upload`
+
+Что она делает:
+- берёт файл, который пришёл из Telegram,
+- кладёт его в папку дела в Nextcloud (`01_Incoming`).
+
+Как настроить:
+- в `URL` заменить `nextcloud.example.ru` на ваш Nextcloud;
+- `Credentials` = `nextcloud_webdav`;
+- остальное не менять.
+
+---
+
+### 3) В unified-файле как они называются
+Если вы работаете в `WF_UNIFIED_LEGAL_AUTOMATION.json`, те же ноды будут с префиксом:
+- `CASE_CREATE_AND_FOLDERS :: DAV MKCOL Incoming`
+- `CASE_CREATE_AND_FOLDERS :: DAV MKCOL Outgoing`
+- `CASE_CREATE_AND_FOLDERS :: DAV MKCOL Evidence`
+- `TELEGRAM_DOCUMENT_INGEST :: DAV Upload`
+
+---
+
+### Что чаще всего ломает Nextcloud-ноды
+1. Неправильный URL (забыли заменить `nextcloud.example.ru`).
+2. Неверные логин/пароль в credential `nextcloud_webdav`.
+3. У пользователя Nextcloud нет прав на создание папок/загрузку файлов.
+4. Неправильный базовый путь WebDAV (`/remote.php/dav/files/<user>/...`).
+
+---
+
+### Быстрая проверка для новичка (1 минута)
+1. Откройте `DAV MKCOL Incoming` → нажмите `Execute previous nodes`.
+2. В Nextcloud проверьте: появилась ли папка `.../01_Incoming`.
+3. Отправьте тестовый файл в Telegram с кодом дела.
+4. Проверьте, что `DAV Upload` прошёл успешно и файл появился в папке дела.
+
+Если эти шаги прошли — Nextcloud часть настроена правильно.
+
 ## Какие ноды настраиваем, а какие не трогаем
 Ниже — правило для первого запуска: **настраиваем только то, где меняются ваши URL/ключи/credentials**, остальное не трогаем.
 
