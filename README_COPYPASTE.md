@@ -268,6 +268,118 @@
 
 ---
 
+## Шпаргалка «нода → строка → что вставить → откуда взять» (без лишних пояснений)
+
+### CASE_CREATE_AND_FOLDERS :: Webhook Case Create
+- HTTP Method → `POST` → вручную (как указано).
+- Path → `case/create` → вручную.
+- Authentication → `None` → вручную (или ваш защищённый вариант).
+- Respond → `Using 'Respond to Webhook' Node` → вручную.
+
+### CASE_CREATE_AND_FOLDERS :: GS Read Cases
+- Credential → `google_sheets_main` → из созданного credential Google Sheets.
+- Sheet ID → `={{$env.GSHEET_ID}}` → из Variables (`GSHEET_ID` = ID таблицы из URL Google Sheets).
+- Range → `дела!A:G` → вручную.
+
+### CASE_CREATE_AND_FOLDERS :: DAV MKCOL Incoming
+- URL → `https://<ВАШ_NEXTCLOUD>/remote.php/dav/files/<USER>{{$json.incoming}}` → домен/IP и USER из вашего Nextcloud.
+- Method → `MKCOL` → вручную.
+- Credential → `nextcloud_webdav` → из созданного credential Nextcloud.
+
+### CASE_CREATE_AND_FOLDERS :: DAV MKCOL Outgoing
+- URL → `https://<ВАШ_NEXTCLOUD>/remote.php/dav/files/<USER>{{$json.outgoing}}` → из Nextcloud.
+- Method → `MKCOL` → вручную.
+- Credential → `nextcloud_webdav` → из credential.
+
+### CASE_CREATE_AND_FOLDERS :: DAV MKCOL Evidence
+- URL → `https://<ВАШ_NEXTCLOUD>/remote.php/dav/files/<USER>{{$json.evidence}}` → из Nextcloud.
+- Method → `MKCOL` → вручную.
+- Credential → `nextcloud_webdav` → из credential.
+
+### CASE_CREATE_AND_FOLDERS :: GS Append Case
+- Credential → `google_sheets_main` → из credential.
+- Sheet ID → `={{$env.GSHEET_ID}}` → из Variables.
+- Range → `дела!A:G` → вручную.
+
+### CASE_CREATE_AND_FOLDERS :: GS Append Folders
+- Credential → `google_sheets_main` → из credential.
+- Sheet ID → `={{$env.GSHEET_ID}}` → из Variables.
+- Range → `папки_дел!A:E` → вручную.
+
+### CASE_EVENT_CREATE :: Webhook Event
+- HTTP Method → `POST` → вручную.
+- Path → `case/event/create` → вручную.
+- Authentication → `None` → вручную.
+- Respond → `Using 'Respond to Webhook' Node` → вручную.
+
+### CASE_EVENT_CREATE :: Calendar Create
+- URL → ваш endpoint календаря (`https://...`) → из вашего Yandex Calendar/API gateway.
+- Method → `POST` → вручную.
+- Credential → `yandex_calendar_api` → из созданного credential (token/header).
+
+### CASE_EVENT_CREATE :: GS Append Event
+- Credential → `google_sheets_main` → из credential.
+- Sheet ID → `={{$env.GSHEET_ID}}` → из Variables.
+- Range → `события_календаря!A:G` → вручную.
+
+### CASE_EVENT_CREATE :: GS Append Reminder 24h / 2h / Client Payment
+- Credential → `google_sheets_main` → из credential.
+- Sheet ID → `={{$env.GSHEET_ID}}` → из Variables.
+- Range → `напоминания!A:H` → вручную.
+
+### REMINDER_DISPATCH_CRON :: Cron
+- Interval (minutes) → `15` → вручную (или ваш интервал).
+
+### REMINDER_DISPATCH_CRON :: GS Read Reminders
+- Credential → `google_sheets_main` → из credential.
+- Sheet ID → `={{$env.GSHEET_ID}}` → из Variables.
+- Range → `напоминания!A:H` → вручную.
+
+### REMINDER_DISPATCH_CRON :: GS Read Sent Log
+- Credential → `google_sheets_main` → из credential.
+- Sheet ID → `={{$env.GSHEET_ID}}` → из Variables.
+- Range → `журнал_отправки_напоминаний!A:D` → вручную.
+
+### REMINDER_DISPATCH_CRON :: TG Send
+- Credential → `telegram_main_bot` → из созданного Telegram credential (токен бота).
+
+### REMINDER_DISPATCH_CRON :: GS Sent Log
+- Credential → `google_sheets_main` → из credential.
+- Sheet ID → `={{$env.GSHEET_ID}}` → из Variables.
+- Range → `журнал_отправки_напоминаний!A:D` → вручную.
+
+### TELEGRAM_DOCUMENT_INGEST :: Telegram Trigger
+- Credential → `telegram_main_bot` → из Telegram credential.
+
+### TELEGRAM_DOCUMENT_INGEST :: GS Read Folders
+- Credential → `google_sheets_main` → из credential.
+- Sheet ID → `={{$env.GSHEET_ID}}` → из Variables.
+- Range → `папки_дел!A:E` → вручную.
+
+### TELEGRAM_DOCUMENT_INGEST :: DAV Upload
+- URL → `https://<ВАШ_NEXTCLOUD>/remote.php/dav/files/<USER>{{$json.folder_path}}/{{$json.stored_filename}}` → домен/IP и USER из Nextcloud.
+- Method → `PUT` → вручную.
+- Credential → `nextcloud_webdav` → из credential.
+
+### TELEGRAM_DOCUMENT_INGEST :: GS Append Document
+- Credential → `google_sheets_main` → из credential.
+- Sheet ID → `={{$env.GSHEET_ID}}` → из Variables.
+- Range → `документы!A:H` → вручную.
+
+### TELEGRAM_DOCUMENT_INGEST :: TG Case Not Found / TG Ack
+- Credential → `telegram_main_bot` → из Telegram credential.
+
+### Ноды mirror (настраивать только если включили YC mirror)
+- `... IF YC Mirror Enabled`:
+  - Variable `YC_METADATA_MIRROR` → `1` → из Variables.
+  - Variable `YC_METADATA_API_URL` → `https://<ваш-api>` → из URL вашего backend API.
+- `... YC Mirror Case Upsert`
+- `... YC Mirror Event Upsert`
+- `... YC Mirror Document Upsert`
+- `... YC Mirror Reminder Sent`
+  - URL → `={{$env.YC_METADATA_API_URL + '/...'}}` → из Variables.
+  - Credential → `yc_backend_api` → из созданного HTTP Header Auth credential.
+
 ## Какие ноды у нас относятся к Nextcloud (очень простыми словами)
 Ниже все ноды, которые работают именно с Nextcloud (WebDAV).
 
