@@ -19,7 +19,7 @@
       "parameters": {
         "operation": "read",
         "sheetId": "={{$env.GSHEET_ID}}",
-        "range": "cases!A:G"
+        "range": "дела!A:G"
       },
       "name": "CASE_CREATE_AND_FOLDERS :: GS Read Cases",
       "type": "n8n-nodes-base.googleSheets",
@@ -37,7 +37,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $items('Webhook Case Create')[0].json.body; const rows = items.map(i=>i.json); const exists = rows.some(r => r.case_code === body.case_code); return [{...body, exists}];"
+        "jsCode": "const body = $items('Webhook Case Create')[0].json.body; const rows = items.map(i=>i.json); const exists = rows.some(r => String(r['код_дела']) === String(body.case_code)); return [{...body, exists}];"
       },
       "name": "CASE_CREATE_AND_FOLDERS :: Check Case Code",
       "type": "n8n-nodes-base.code",
@@ -153,17 +153,17 @@
       "parameters": {
         "operation": "append",
         "sheetId": "={{$env.GSHEET_ID}}",
-        "range": "cases!A:G",
+        "range": "дела!A:G",
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "case_code": "={{$json.case_code}}",
-            "client_ref": "={{$json.client_ref}}",
-            "lawyer_ref": "={{$json.lawyer_ref}}",
-            "case_type": "={{$json.case_type}}",
-            "jurisdiction": "={{$json.jurisdiction}}",
-            "status": "active",
-            "created_at": "={{$json.created_at}}"
+            "код_дела": "={{$json.case_code}}",
+            "клиент_id": "={{$json.client_ref || \"\"}}",
+            "юрист_id": "={{$json.lawyer_ref || \"\"}}",
+            "тип_дела": "={{$json.case_type || \"\"}}",
+            "юрисдикция": "={{$json.jurisdiction || \"\"}}",
+            "статус": "={{$json.status || \"new\"}}",
+            "создано_в": "={{$json.created_at}}"
           }
         }
       },
@@ -185,15 +185,15 @@
       "parameters": {
         "operation": "append",
         "sheetId": "={{$env.GSHEET_ID}}",
-        "range": "case_folders!A:E",
+        "range": "папки_дел!A:E",
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "case_code": "={{$json.case_code}}",
-            "incoming_path": "={{$json.incoming}}",
-            "outgoing_path": "={{$json.outgoing}}",
-            "evidence_path": "={{$json.evidence}}",
-            "created_at": "={{$json.created_at}}"
+            "код_дела": "={{$json.case_code}}",
+            "путь_входящие": "={{$json.incoming}}",
+            "путь_исходящие": "={{$json.outgoing}}",
+            "путь_доказательства": "={{$json.evidence}}",
+            "создано_в": "={{$json.created_at}}"
           }
         }
       },
@@ -319,17 +319,17 @@
       "parameters": {
         "operation": "append",
         "sheetId": "={{$env.GSHEET_ID}}",
-        "range": "calendar_events!A:G",
+        "range": "события_календаря!A:G",
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "event_id": "={{$json.event_id}}",
-            "case_code": "={{$json.case_code}}",
-            "event_type": "={{$json.event_type}}",
-            "start_at": "={{$json.start_at}}",
-            "end_at": "={{$json.end_at}}",
-            "external_event_id": "={{$json.id}}",
-            "created_at": "={{$json.created_at}}"
+            "id_события": "={{$json.event_id}}",
+            "код_дела": "={{$json.case_code}}",
+            "тип_события": "={{$json.event_type}}",
+            "начало": "={{$json.start_at}}",
+            "конец": "={{$json.end_at}}",
+            "внешний_id_события": "={{$json.id}}",
+            "создано_в": "={{$json.created_at}}"
           }
         }
       },
@@ -351,18 +351,18 @@
       "parameters": {
         "operation": "append",
         "sheetId": "={{$env.GSHEET_ID}}",
-        "range": "reminders!A:H",
+        "range": "напоминания!A:H",
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "reminder_id": "={{$json.event_id + '-24h'}}",
-            "event_id": "={{$json.event_id}}",
-            "recipient_role": "lawyer",
+            "id_напоминания": "={{$json.event_id + \"-24h\"}}",
+            "id_события": "={{$json.event_id}}",
+            "роль_получателя": "lawyer",
             "telegram_chat_id": "={{$json.lawyer_chat_id}}",
-            "message_text": "={{'Напоминание: событие по делу ' + $json.case_code + ' через 24 часа.'}}",
-            "send_at": "={{DateTime.fromISO($json.start_at).minus({hours:24}).toISO()}}",
-            "status": "pending",
-            "sent_at": ""
+            "текст_сообщения": "={{\"Напоминание: событие по делу \" + $json.case_code + \" через 24 часа.\"}}",
+            "отправить_в": "={{DateTime.fromISO($json.start_at).minus({hours:24}).toISO()}}",
+            "статус": "pending",
+            "отправлено_в": ""
           }
         }
       },
@@ -384,18 +384,18 @@
       "parameters": {
         "operation": "append",
         "sheetId": "={{$env.GSHEET_ID}}",
-        "range": "reminders!A:H",
+        "range": "напоминания!A:H",
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "reminder_id": "={{$json.event_id + '-2h'}}",
-            "event_id": "={{$json.event_id}}",
-            "recipient_role": "lawyer",
+            "id_напоминания": "={{$json.event_id + \"-2h\"}}",
+            "id_события": "={{$json.event_id}}",
+            "роль_получателя": "lawyer",
             "telegram_chat_id": "={{$json.lawyer_chat_id}}",
-            "message_text": "={{'Напоминание: событие по делу ' + $json.case_code + ' через 2 часа.'}}",
-            "send_at": "={{DateTime.fromISO($json.start_at).minus({hours:2}).toISO()}}",
-            "status": "pending",
-            "sent_at": ""
+            "текст_сообщения": "={{\"Напоминание: событие по делу \" + $json.case_code + \" через 2 часа.\"}}",
+            "отправить_в": "={{DateTime.fromISO($json.start_at).minus({hours:2}).toISO()}}",
+            "статус": "pending",
+            "отправлено_в": ""
           }
         }
       },
@@ -450,18 +450,18 @@
       "parameters": {
         "operation": "append",
         "sheetId": "={{$env.GSHEET_ID}}",
-        "range": "reminders!A:H",
+        "range": "напоминания!A:H",
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "reminder_id": "={{$json.event_id + '-payment'}}",
-            "event_id": "={{$json.event_id}}",
-            "recipient_role": "client",
+            "id_напоминания": "={{$json.event_id + \"-payment\"}}",
+            "id_события": "={{$json.event_id}}",
+            "роль_получателя": "client",
             "telegram_chat_id": "={{$json.client_chat_id}}",
-            "message_text": "={{'Напоминание об оплате по делу ' + $json.case_code + ($json.payment_amount ? ('. Сумма: ' + $json.payment_amount) : '')}}",
-            "send_at": "={{$json.payment_due_at}}",
-            "status": "pending",
-            "sent_at": ""
+            "текст_сообщения": "={{\"Напоминание об оплате по делу \" + $json.case_code + ($json.payment_amount ? (\". Сумма: \" + $json.payment_amount) : \"\")}}",
+            "отправить_в": "={{$json.payment_due_at}}",
+            "статус": "pending",
+            "отправлено_в": ""
           }
         }
       },
@@ -544,7 +544,7 @@
       "parameters": {
         "operation": "read",
         "sheetId": "={{$env.GSHEET_ID}}",
-        "range": "reminders!A:H"
+        "range": "напоминания!A:H"
       },
       "name": "REMINDER_DISPATCH_CRON :: GS Read Reminders",
       "type": "n8n-nodes-base.googleSheets",
@@ -564,7 +564,7 @@
       "parameters": {
         "operation": "read",
         "sheetId": "={{$env.GSHEET_ID}}",
-        "range": "reminders_sent_log!A:D"
+        "range": "журнал_отправки_напоминаний!A:D"
       },
       "name": "REMINDER_DISPATCH_CRON :: GS Read Sent Log",
       "type": "n8n-nodes-base.googleSheets",
@@ -582,7 +582,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const reminders = $items('GS Read Reminders').map(i => i.json);\nconst sentIds = new Set(items.map(i => i.json.reminder_id).filter(Boolean));\nconst now = new Date();\nreturn reminders.filter(r => r.status === 'pending' && new Date(r.send_at) <= now && !sentIds.has(r.reminder_id)).map(r => ({ json: r }));"
+        "jsCode": "const reminders = $items('GS Read Reminders').map(i => i.json);\nconst sentIds = new Set(items.map(i => i.json['id_напоминания']).filter(Boolean));\nconst now = new Date();\nreturn reminders.filter(r => r['статус'] === 'pending' && new Date(r['отправить_в']) <= now && !sentIds.has(r['id_напоминания'])).map(r => ({ json: r }));"
       },
       "name": "REMINDER_DISPATCH_CRON :: Filter Due",
       "type": "n8n-nodes-base.code",
@@ -606,8 +606,8 @@
     },
     {
       "parameters": {
-        "chatId": "={{$json.telegram_chat_id}}",
-        "text": "={{$json.message_text || ($json.recipient_role === 'client' ? 'Напоминание по вашему делу.' : 'Напоминание по событию.')}}"
+        "chatId": "={{$json['telegram_chat_id']}}",
+        "text": "={{$json['текст_сообщения'] || ($json['роль_получателя'] === 'client' ? 'Напоминание по вашему делу.' : 'Напоминание по событию.')}}"
       },
       "name": "REMINDER_DISPATCH_CRON :: TG Send",
       "type": "n8n-nodes-base.telegram",
@@ -627,14 +627,14 @@
       "parameters": {
         "operation": "append",
         "sheetId": "={{$env.GSHEET_ID}}",
-        "range": "reminders_sent_log!A:D",
+        "range": "журнал_отправки_напоминаний!A:D",
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "reminder_id": "={{$json.reminder_id}}",
-            "sent_at": "={{$now}}",
-            "recipient_role": "={{$json.recipient_role}}",
-            "status": "sent"
+            "id_напоминания": "={{$json[\"id_напоминания\"]}}",
+            "отправлено_в": "={{$now}}",
+            "роль_получателя": "={{$json[\"роль_получателя\"]}}",
+            "статус": "sent"
           }
         }
       },
@@ -677,7 +677,7 @@
         "method": "POST",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { reminder_id: $json.reminder_id, recipient_role: $json.recipient_role, sent_at: String($now), status: 'sent' } }}"
+        "jsonBody": "={{ { reminder_id: $json['id_напоминания'], recipient_role: $json['роль_получателя'], sent_at: String($now), status: 'sent' } }}"
       },
       "name": "REMINDER_DISPATCH_CRON :: YC Mirror Reminder Sent",
       "type": "n8n-nodes-base.httpRequest",
@@ -731,7 +731,7 @@
       "parameters": {
         "operation": "read",
         "sheetId": "={{$env.GSHEET_ID}}",
-        "range": "case_folders!A:E"
+        "range": "папки_дел!A:E"
       },
       "name": "TELEGRAM_DOCUMENT_INGEST :: GS Read Folders",
       "type": "n8n-nodes-base.googleSheets",
@@ -749,7 +749,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $items('Parse')[0].json;\nif (input.invalid) return [input];\nconst row = items.map(i => i.json).find(r => String(r.case_code) === String(input.case_code));\nif (!row) {\n  return [{ ...input, notFound: true, error_text: `Дело ${input.case_code} не найдено. Проверьте номер.` }];\n}\nreturn [{ ...input, folder_path: row.incoming_path, notFound: false }];"
+        "jsCode": "const input = $items('Parse')[0].json;\nif (input.invalid) return [input];\nconst row = items.map(i => i.json).find(r => String(r['код_дела']) === String(input.case_code));\nif (!row) {\n  return [{ ...input, notFound: true, error_text: `Дело ${input.case_code} не найдено. Проверьте номер.` }];\n}\nreturn [{ ...input, folder_path: row['путь_входящие'], notFound: false }];"
       },
       "name": "TELEGRAM_DOCUMENT_INGEST :: Match Case",
       "type": "n8n-nodes-base.code",
@@ -862,18 +862,18 @@
       "parameters": {
         "operation": "append",
         "sheetId": "={{$env.GSHEET_ID}}",
-        "range": "documents!A:H",
+        "range": "документы!A:H",
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "doc_id": "={{$now.toMillis()}}",
-            "case_code": "={{$json.case_code}}",
-            "uploaded_by_telegram_id": "={{$json.from_id}}",
-            "stored_filename": "={{$json.stored_filename}}",
-            "storage_path": "={{$json.folder_path + '/' + $json.stored_filename}}",
-            "mime_type": "={{$binary.data.mimeType}}",
-            "size_bytes": "={{$binary.data.fileSize}}",
-            "uploaded_at": "={{$now}}"
+            "id_документа": "={{$now.toMillis()}}",
+            "код_дела": "={{$json.case_code}}",
+            "telegram_id_отправителя": "={{$json.from_id}}",
+            "имя_файла_в_хранилище": "={{$json.stored_filename}}",
+            "путь_в_хранилище": "={{$json.folder_path + \"/\" + $json.stored_filename}}",
+            "mime_тип": "={{$binary.data.mimeType}}",
+            "размер_байт": "={{$binary.data.fileSize}}",
+            "загружено_в": "={{$now}}"
           }
         }
       },
@@ -1481,5 +1481,5 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "1"
+  "versionId": "2"
 }
