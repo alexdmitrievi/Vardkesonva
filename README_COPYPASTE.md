@@ -82,7 +82,7 @@
 - для production лучше домен + HTTPS (Nginx/Caddy + сертификат).
 
 ## Конкретно по вашим скриншотам VM: что копировать и куда вставлять
-Из ваших данных видно:
+Из ваших даных видно:
 - Публичный IPv4: `158.160.191.139`
 - Внутренний IPv4: `10.130.0.6`
 - SSH команда: `ssh -l vardkesovna 158.160.191.139`
@@ -97,7 +97,7 @@
 2. **Production URL из webhook-нод**
    - Берёте прямо в нодах `Webhook Case Create` и `Webhook Event` (вкладка Production URL).
    - Эти URL вставляете в CRM/сайт/форму, которая отправляет POST-запросы.
-   - IP VM в webhook-ноду вручную не втавляется, он уже входит в URL вашего n8n-домена/хоста.
+   - IP VM в webhook-ноду вручную не вставляется, он уже входит в URL вашего n8n-домена/хоста.
 
 ### НЕ копируем в ноды
 - `Внутренний IPv4 (10.130.0.6)` — не нужен для внешних webhook и обычно не нужен в текущих нодах.
@@ -233,7 +233,7 @@
 
 ---
 
-### 3.1) Очень простая настройка по нода (для новичка, без кода)
+### 3.1) Очень простая настройка по нодам (для новичка, без кода)
 Ниже — что открыть и что вставить, буквально по шагам.
 
 #### WF 1: CASE_CREATE_AND_FOLDERS (создание дела)
@@ -288,6 +288,30 @@
    - Credential: `telegram_main_bot`.
 
 ---
+
+## Соответствие Google Sheets по 4 веткам (чётко по вашему canvas)
+
+### Ветка 1: `CASE_CREATE_AND_FOLDERS`
+- `GS Read Cases` → лист `дела` (`дела!A:G`)
+- `GS Append Case` → лист `дела` (`дела!A:G`)
+- `GS Append Folders` → лист `папки_дел` (`папки_дел!A:E`)
+
+### Ветка 2: `CASE_EVENT_CREATE`
+- `GS Append Event` → лист `события_календаря` (`события_календаря!A:G`)
+- `GS Append Reminder 24h` → лист `напоминания` (`напоминания!A:H`)
+- `GS Append Reminder 2h` → лист `напоминания` (`напоминания!A:H`)
+- `GS Append Client Payment Reminder` → лист `напоминания` (`напоминания!A:H`)
+
+### Ветка 3: `REMINDER_DISPATCH_CRON`
+- `GS Read Reminders` → лист `напоминания` (`напоминания!A:H`)
+- `GS Read Sent Log` → лист `журнал_отправки_напоминаний` (`журнал_отправки_напоминаний!A:D`)
+- `GS Sent Log` → лист `журнал_отправки_напоминаний` (`журнал_отправки_напоминаний!A:D`)
+
+### Ветка 4: `TELEGRAM_DOCUMENT_INGEST`
+- `GS Read Folders` → лист `папки_дел` (`папки_дел!A:E`)
+- `GS Append Document` → лист `документы` (`документы!A:H`)
+
+> Важно: во всех GS-нодах должен быть один и тот же `Sheet ID = {{$env.GSHEET_ID}}` и credential `google_sheets_main`.
 
 ## Шпаргалка «нода → строка → что вставить → откуда взять» (без лишних пояснений)
 
@@ -533,7 +557,7 @@
 - `GS Read Sent Log` — range `журнал_отправки_напоминаний!A:D`.
 - `TG Send` — credential `telegram_main_bot`.
 - `GS Sent Log` — range `журнал_отправки_напоминаний!A:D`.
-- `IF YC Mirror Enabled` / `YC Mirror Reminder Sent` — толко при mirror.
+- `IF YC Mirror Enabled` / `YC Mirror Reminder Sent` — только при mirror.
 
 #### TELEGRAM_DOCUMENT_INGEST
 - `Telegram Trigger` — credential `telegram_main_bot`.
@@ -553,7 +577,7 @@
 - Ответы webhook:
   - `Respond 409`, `Respond 201`.
 
-Если в этих нодах менять поля без необходимости, можно случайно сломать весь поток.
+Если в этих нодах менять поля бе необходимости, можно случайно сломать весь поток.
 
 ### 3) Простой принцип
 - Меняем: **URL, credentials, ranges, переменные окружения**.
