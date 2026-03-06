@@ -1,5 +1,5 @@
 {
-  "name": "WF_UNIFIED_LEGAL_AUTOMATION",
+  "name": "WF_UNIFIED_LEGAL_AUTOMATION_PRESET",
   "nodes": [
     {
       "parameters": {
@@ -18,7 +18,7 @@
     {
       "parameters": {
         "operation": "read",
-        "sheetId": "={{$env.GSHEET_ID}}",
+        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
         "range": "дела!A:G"
       },
       "name": "CASE_CREATE_AND_FOLDERS :: GS Read Cases",
@@ -30,8 +30,8 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "google_sheets_main",
-          "name": "google_sheets_main"
+          "id": "5N7eePwwk1ngJLFd",
+          "name": "Google Sheets account"
         }
       }
     },
@@ -152,7 +152,7 @@
     {
       "parameters": {
         "operation": "append",
-        "sheetId": "={{$env.GSHEET_ID}}",
+        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
         "range": "дела!A:G",
         "columns": {
           "mappingMode": "defineBelow",
@@ -176,15 +176,15 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "google_sheets_main",
-          "name": "google_sheets_main"
+          "id": "5N7eePwwk1ngJLFd",
+          "name": "Google Sheets account"
         }
       }
     },
     {
       "parameters": {
         "operation": "append",
-        "sheetId": "={{$env.GSHEET_ID}}",
+        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
         "range": "папки_дел!A:E",
         "columns": {
           "mappingMode": "defineBelow",
@@ -193,7 +193,7 @@
             "путь_входящие": "={{$json.incoming}}",
             "путь_исходящие": "={{$json.outgoing}}",
             "путь_доказательства": "={{$json.evidence}}",
-            "создано_в": "={{$json.created_at}}"
+            "оздано_в": "={{$json.created_at}}"
           }
         }
       },
@@ -206,8 +206,8 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "google_sheets_main",
-          "name": "google_sheets_main"
+          "id": "5N7eePwwk1ngJLFd",
+          "name": "Google Sheets account"
         }
       }
     },
@@ -327,7 +327,7 @@
     {
       "parameters": {
         "operation": "append",
-        "sheetId": "={{$env.GSHEET_ID}}",
+        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
         "range": "события_календаря!A:G",
         "columns": {
           "mappingMode": "defineBelow",
@@ -351,15 +351,15 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "google_sheets_main",
-          "name": "google_sheets_main"
+          "id": "5N7eePwwk1ngJLFd",
+          "name": "Google Sheets account"
         }
       }
     },
     {
       "parameters": {
         "operation": "append",
-        "sheetId": "={{$env.GSHEET_ID}}",
+        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
         "range": "напоминания!A:H",
         "columns": {
           "mappingMode": "defineBelow",
@@ -384,15 +384,15 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "google_sheets_main",
-          "name": "google_sheets_main"
+          "id": "5N7eePwwk1ngJLFd",
+          "name": "Google Sheets account"
         }
       }
     },
     {
       "parameters": {
         "operation": "append",
-        "sheetId": "={{$env.GSHEET_ID}}",
+        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
         "range": "напоминания!A:H",
         "columns": {
           "mappingMode": "defineBelow",
@@ -417,8 +417,8 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "google_sheets_main",
-          "name": "google_sheets_main"
+          "id": "5N7eePwwk1ngJLFd",
+          "name": "Google Sheets account"
         }
       }
     },
@@ -458,7 +458,7 @@
     {
       "parameters": {
         "operation": "append",
-        "sheetId": "={{$env.GSHEET_ID}}",
+        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
         "range": "напоминания!A:H",
         "columns": {
           "mappingMode": "defineBelow",
@@ -483,8 +483,8 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "google_sheets_main",
-          "name": "google_sheets_main"
+          "id": "5N7eePwwk1ngJLFd",
+          "name": "Google Sheets account"
         }
       }
     },
@@ -552,7 +552,7 @@
     {
       "parameters": {
         "operation": "read",
-        "sheetId": "={{$env.GSHEET_ID}}",
+        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
         "range": "напоминания!A:H"
       },
       "name": "REMINDER_DISPATCH_CRON :: GS Read Reminders",
@@ -564,15 +564,15 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "google_sheets_main",
-          "name": "google_sheets_main"
+          "id": "5N7eePwwk1ngJLFd",
+          "name": "Google Sheets account"
         }
       }
     },
     {
       "parameters": {
         "operation": "read",
-        "sheetId": "={{$env.GSHEET_ID}}",
+        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
         "range": "журнал_отправки_напоминаний!A:D"
       },
       "name": "REMINDER_DISPATCH_CRON :: GS Read Sent Log",
@@ -584,8 +584,8 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "google_sheets_main",
-          "name": "google_sheets_main"
+          "id": "5N7eePwwk1ngJLFd",
+          "name": "Google Sheets account"
         }
       }
     },
@@ -627,15 +627,15 @@
       ],
       "credentials": {
         "telegramApi": {
-          "id": "telegram_main_bot",
-          "name": "telegram_main_bot"
+          "id": "RVv7OpyGffY9IU2A",
+          "name": "Telegram account"
         }
       }
     },
     {
       "parameters": {
         "operation": "append",
-        "sheetId": "={{$env.GSHEET_ID}}",
+        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
         "range": "журнал_отправки_напоминаний!A:D",
         "columns": {
           "mappingMode": "defineBelow",
@@ -656,8 +656,8 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "google_sheets_main",
-          "name": "google_sheets_main"
+          "id": "5N7eePwwk1ngJLFd",
+          "name": "Google Sheets account"
         }
       }
     },
@@ -719,8 +719,8 @@
       ],
       "credentials": {
         "telegramApi": {
-          "id": "telegram_main_bot",
-          "name": "telegram_main_bot"
+          "id": "RVv7OpyGffY9IU2A",
+          "name": "Telegram account"
         }
       }
     },
@@ -739,7 +739,7 @@
     {
       "parameters": {
         "operation": "read",
-        "sheetId": "={{$env.GSHEET_ID}}",
+        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
         "range": "папки_дел!A:E"
       },
       "name": "TELEGRAM_DOCUMENT_INGEST :: GS Read Folders",
@@ -751,8 +751,8 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "google_sheets_main",
-          "name": "google_sheets_main"
+          "id": "5N7eePwwk1ngJLFd",
+          "name": "Google Sheets account"
         }
       }
     },
@@ -801,8 +801,8 @@
       ],
       "credentials": {
         "telegramApi": {
-          "id": "telegram_main_bot",
-          "name": "telegram_main_bot"
+          "id": "RVv7OpyGffY9IU2A",
+          "name": "Telegram account"
         }
       }
     },
@@ -870,7 +870,7 @@
     {
       "parameters": {
         "operation": "append",
-        "sheetId": "={{$env.GSHEET_ID}}",
+        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
         "range": "документы!A:H",
         "columns": {
           "mappingMode": "defineBelow",
@@ -895,8 +895,8 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "google_sheets_main",
-          "name": "google_sheets_main"
+          "id": "5N7eePwwk1ngJLFd",
+          "name": "Google Sheets account"
         }
       }
     },
@@ -914,8 +914,8 @@
       ],
       "credentials": {
         "telegramApi": {
-          "id": "telegram_main_bot",
-          "name": "telegram_main_bot"
+          "id": "RVv7OpyGffY9IU2A",
+          "name": "Telegram account"
         }
       }
     },
