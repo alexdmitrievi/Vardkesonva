@@ -94,7 +94,7 @@
     },
     {
       "parameters": {
-        "url": "=https://nextcloud.example.ru/remote.php/dav/files/legal_service{{$json.incoming}}",
+        "url": "=http://158.160.191.139/remote.php/dav/files/Vardkes{{$json.incoming}}",
         "method": "MKCOL"
       },
       "name": "CASE_CREATE_AND_FOLDERS :: DAV MKCOL Incoming",
@@ -113,7 +113,7 @@
     },
     {
       "parameters": {
-        "url": "=https://nextcloud.example.ru/remote.php/dav/files/legal_service{{$json.outgoing}}",
+        "url": "=http://158.160.191.139/remote.php/dav/files/Vardkes{{$json.outgoing}}",
         "method": "MKCOL"
       },
       "name": "CASE_CREATE_AND_FOLDERS :: DAV MKCOL Outgoing",
@@ -132,7 +132,7 @@
     },
     {
       "parameters": {
-        "url": "=https://nextcloud.example.ru/remote.php/dav/files/legal_service{{$json.evidence}}",
+        "url": "=http://158.160.191.139/remote.php/dav/files/Vardkes{{$json.evidence}}",
         "method": "MKCOL"
       },
       "name": "CASE_CREATE_AND_FOLDERS :: DAV MKCOL Evidence",
@@ -295,11 +295,20 @@
     },
     {
       "parameters": {
-        "url": "https://calendar.yandex.ru/api/events",
-        "method": "POST",
+        "url": "=https://caldav.yandex.ru/calendars/astrarav%40yandex.ru/events-36560758/{{$json.event_id}}.ics",
+        "method": "PUT",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "text/calendar; charset=utf-8"
+            }
+          ]
+        },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\"title\":'['+$json.case_code+'] '+$json.event_type,\"start\":$json.start_at,\"end\":$json.end_at,\"timezone\":$json.timezone}"
+        "specifyBody": "string",
+        "body": "=BEGIN:VCALENDAR\\nVERSION:2.0\\nPRODID:-//n8n//Legal Workflow//RU\\nBEGIN:VEVENT\\nUID:{{$json.event_id}}\\nDTSTAMP:{{$now.toFormat(\"yyyyMMdd'T'HHmmss'Z'\")}}\\nSUMMARY:[{{$json.case_code}}] {{$json.event_type}}\\nDTSTART:{{DateTime.fromISO($json.start_at).toUTC().toFormat(\"yyyyMMdd'T'HHmmss'Z'\")}}\\nDTEND:{{DateTime.fromISO($json.end_at).toUTC().toFormat(\"yyyyMMdd'T'HHmmss'Z'\")}}\\nEND:VEVENT\\nEND:VCALENDAR"
       },
       "name": "CASE_EVENT_CREATE :: Calendar Create",
       "type": "n8n-nodes-base.httpRequest",
@@ -309,7 +318,7 @@
         1090
       ],
       "credentials": {
-        "httpHeaderAuth": {
+        "httpBasicAuth": {
           "id": "yandex_calendar_api",
           "name": "yandex_calendar_api"
         }
@@ -839,7 +848,7 @@
     },
     {
       "parameters": {
-        "url": "=https://nextcloud.example.ru/remote.php/dav/files/legal_service{{$json.folder_path}}/{{$json.stored_filename}}",
+        "url": "=http://158.160.191.139/remote.php/dav/files/Vardkes{{$json.folder_path}}/{{$json.stored_filename}}",
         "method": "PUT",
         "sendBinaryData": true,
         "binaryPropertyName": "data"
