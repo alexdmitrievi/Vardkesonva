@@ -1,5 +1,5 @@
 {
-  "name": "WF_UNIFIED_LEGAL_AUTOMATION_PRESET",
+  "name": "WF_UNIFIED_LEGAL_AUTOMATION",
   "nodes": [
     {
       "parameters": {
@@ -18,7 +18,7 @@
     {
       "parameters": {
         "operation": "read",
-        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
+        "sheetId": "={{$env.GSHEET_ID}}",
         "range": "дела!A:G"
       },
       "name": "CASE_CREATE_AND_FOLDERS :: GS Read Cases",
@@ -30,8 +30,8 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "5N7eePwwk1ngJLFd",
-          "name": "Google Sheets account"
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
         }
       }
     },
@@ -152,7 +152,7 @@
     {
       "parameters": {
         "operation": "append",
-        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
+        "sheetId": "={{$env.GSHEET_ID}}",
         "range": "дела!A:G",
         "columns": {
           "mappingMode": "defineBelow",
@@ -176,15 +176,15 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "5N7eePwwk1ngJLFd",
-          "name": "Google Sheets account"
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
         }
       }
     },
     {
       "parameters": {
         "operation": "append",
-        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
+        "sheetId": "={{$env.GSHEET_ID}}",
         "range": "папки_дел!A:E",
         "columns": {
           "mappingMode": "defineBelow",
@@ -193,7 +193,7 @@
             "путь_входящие": "={{$json.incoming}}",
             "путь_исходящие": "={{$json.outgoing}}",
             "путь_доказательства": "={{$json.evidence}}",
-            "оздано_в": "={{$json.created_at}}"
+            "создано_в": "={{$json.created_at}}"
           }
         }
       },
@@ -206,8 +206,8 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "5N7eePwwk1ngJLFd",
-          "name": "Google Sheets account"
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
         }
       }
     },
@@ -327,7 +327,7 @@
     {
       "parameters": {
         "operation": "append",
-        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
+        "sheetId": "={{$env.GSHEET_ID}}",
         "range": "события_календаря!A:G",
         "columns": {
           "mappingMode": "defineBelow",
@@ -351,15 +351,15 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "5N7eePwwk1ngJLFd",
-          "name": "Google Sheets account"
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
         }
       }
     },
     {
       "parameters": {
         "operation": "append",
-        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
+        "sheetId": "={{$env.GSHEET_ID}}",
         "range": "напоминания!A:H",
         "columns": {
           "mappingMode": "defineBelow",
@@ -384,15 +384,15 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "5N7eePwwk1ngJLFd",
-          "name": "Google Sheets account"
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
         }
       }
     },
     {
       "parameters": {
         "operation": "append",
-        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
+        "sheetId": "={{$env.GSHEET_ID}}",
         "range": "напоминания!A:H",
         "columns": {
           "mappingMode": "defineBelow",
@@ -417,8 +417,8 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "5N7eePwwk1ngJLFd",
-          "name": "Google Sheets account"
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
         }
       }
     },
@@ -458,7 +458,7 @@
     {
       "parameters": {
         "operation": "append",
-        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
+        "sheetId": "={{$env.GSHEET_ID}}",
         "range": "напоминания!A:H",
         "columns": {
           "mappingMode": "defineBelow",
@@ -483,8 +483,8 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "5N7eePwwk1ngJLFd",
-          "name": "Google Sheets account"
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
         }
       }
     },
@@ -552,7 +552,7 @@
     {
       "parameters": {
         "operation": "read",
-        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
+        "sheetId": "={{$env.GSHEET_ID}}",
         "range": "напоминания!A:H"
       },
       "name": "REMINDER_DISPATCH_CRON :: GS Read Reminders",
@@ -564,15 +564,15 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "5N7eePwwk1ngJLFd",
-          "name": "Google Sheets account"
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
         }
       }
     },
     {
       "parameters": {
         "operation": "read",
-        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
+        "sheetId": "={{$env.GSHEET_ID}}",
         "range": "журнал_отправки_напоминаний!A:D"
       },
       "name": "REMINDER_DISPATCH_CRON :: GS Read Sent Log",
@@ -584,8 +584,8 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "5N7eePwwk1ngJLFd",
-          "name": "Google Sheets account"
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
         }
       }
     },
@@ -627,15 +627,15 @@
       ],
       "credentials": {
         "telegramApi": {
-          "id": "RVv7OpyGffY9IU2A",
-          "name": "Telegram account"
+          "id": "telegram_main_bot",
+          "name": "telegram_main_bot"
         }
       }
     },
     {
       "parameters": {
         "operation": "append",
-        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
+        "sheetId": "={{$env.GSHEET_ID}}",
         "range": "журнал_отправки_напоминаний!A:D",
         "columns": {
           "mappingMode": "defineBelow",
@@ -656,8 +656,8 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "5N7eePwwk1ngJLFd",
-          "name": "Google Sheets account"
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
         }
       }
     },
@@ -719,8 +719,8 @@
       ],
       "credentials": {
         "telegramApi": {
-          "id": "RVv7OpyGffY9IU2A",
-          "name": "Telegram account"
+          "id": "telegram_main_bot",
+          "name": "telegram_main_bot"
         }
       }
     },
@@ -739,7 +739,7 @@
     {
       "parameters": {
         "operation": "read",
-        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
+        "sheetId": "={{$env.GSHEET_ID}}",
         "range": "папки_дел!A:E"
       },
       "name": "TELEGRAM_DOCUMENT_INGEST :: GS Read Folders",
@@ -751,8 +751,8 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "5N7eePwwk1ngJLFd",
-          "name": "Google Sheets account"
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
         }
       }
     },
@@ -801,8 +801,8 @@
       ],
       "credentials": {
         "telegramApi": {
-          "id": "RVv7OpyGffY9IU2A",
-          "name": "Telegram account"
+          "id": "telegram_main_bot",
+          "name": "telegram_main_bot"
         }
       }
     },
@@ -870,7 +870,7 @@
     {
       "parameters": {
         "operation": "append",
-        "sheetId": "1n4P04ka-aLMONIythoEnMiO2wJo5UFncio_3R1yoRKY",
+        "sheetId": "={{$env.GSHEET_ID}}",
         "range": "документы!A:H",
         "columns": {
           "mappingMode": "defineBelow",
@@ -895,8 +895,8 @@
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "5N7eePwwk1ngJLFd",
-          "name": "Google Sheets account"
+          "id": "google_sheets_main",
+          "name": "google_sheets_main"
         }
       }
     },
@@ -914,8 +914,8 @@
       ],
       "credentials": {
         "telegramApi": {
-          "id": "RVv7OpyGffY9IU2A",
-          "name": "Telegram account"
+          "id": "telegram_main_bot",
+          "name": "telegram_main_bot"
         }
       }
     },
@@ -960,6 +960,82 @@
         }
       },
       "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "path": "ai/legal/consult",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {
+          "binaryData": true
+        }
+      },
+      "name": "AI_LEGAL :: Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $json.body || {};\nconst binary = $binary || {};\n\nlet extractedFromFile = '';\nif (binary.file?.data) {\n  const mime = binary.file.mimeType || '';\n  const fileName = binary.file.fileName || 'uploaded_file';\n  if (mime.startsWith('text/')) {\n    extractedFromFile = Buffer.from(binary.file.data, 'base64').toString('utf8');\n  } else {\n    extractedFromFile = `[Файл '${fileName}' (${mime || 'unknown mime'}) получен, но автоизвлечение текста не выполнено. Передайте text/document_text или добавьте OCR/парсер в workflow.]`;\n  }\n}\n\nconst documentText = String(b.document_text || b.text || b.case_text || extractedFromFile || '').trim();\nif (!documentText) {\n  throw new Error('Передайте текст дела в body.document_text / body.text / body.case_text или прикрепите текстовый файл в binary.file');\n}\n\nreturn [{\n  case_code: b.case_code || null,\n  jurisdiction: b.jurisdiction || 'Россия',\n  document_text: documentText\n}];"
+      },
+      "name": "AI_LEGAL :: Prepare Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEGAL_AI_API_URL || 'https://api.openai.com/v1/chat/completions'}}",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { model: $env.LEGAL_AI_MODEL || 'gpt-4o-mini', temperature: 0.2, response_format: { type: 'json_object' }, messages: [ { role: 'system', content: 'Ты — юридический AI-ассистент для профессиональных юристов и адвокатов. Роль: старший консультант с практической экспертизой 20+ лет по праву РФ (федеральное законодательство, подзаконные акты, судебная практика). Работаешь строго в правовом поле РФ, пишешь профессионально и структурировано. Не выдумывай нормы права: если не уверен — укажи, что требуется проверка по актуальной редакции. Ответ ВСЕГДА только валидным JSON формата: {\"summary\":\"...\",\"key_facts\":[\"...\"],\"legal_qualification\":[\"...\"],\"risks\":[\"...\"],\"recommended_next_steps\":[\"...\"],\"evidence_checklist\":[\"...\"],\"questions_for_client\":[\"...\"],\"disclaimer\":\"...\" }' }, { role: 'user', content: `Юрисдикция: ${$json.jurisdiction}\\nКод дела: ${$json.case_code || 'не указан'}\\n\\nТекст материалов дела:\\n${$json.document_text}` } ] } }}"
+      },
+      "name": "AI_LEGAL :: LLM Analyze",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        760,
+        260
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "legal_ai_api",
+          "name": "legal_ai_api"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.choices?.[0]?.message?.content || '{}';\nlet parsed;\ntry {\n  parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;\n} catch (e) {\n  parsed = {\n    summary: String(raw),\n    key_facts: [],\n    legal_qualification: [],\n    risks: ['LLM вернул не-JSON формат, требуется ручная проверка.'],\n    recommended_next_steps: [],\n    evidence_checklist: [],\n    questions_for_client: [],\n    disclaimer: 'Ответ сформирован автоматически, не является юридическим заключением.'\n  };\n}\n\nreturn [{\n  status: 'ok',\n  generated_at: new Date().toISOString(),\n  ...parsed\n}];"
+      },
+      "name": "AI_LEGAL :: Normalize Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1020,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}"
+      },
+      "name": "AI_LEGAL :: Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1260,
+        260
+      ]
     }
   ],
   "connections": {
@@ -1479,6 +1555,50 @@
         [
           {
             "node": "TELEGRAM_DOCUMENT_INGEST :: TG Ack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI_LEGAL :: Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI_LEGAL :: Prepare Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI_LEGAL :: Prepare Input": {
+      "main": [
+        [
+          {
+            "node": "AI_LEGAL :: LLM Analyze",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI_LEGAL :: LLM Analyze": {
+      "main": [
+        [
+          {
+            "node": "AI_LEGAL :: Normalize Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI_LEGAL :: Normalize Output": {
+      "main": [
+        [
+          {
+            "node": "AI_LEGAL :: Respond",
             "type": "main",
             "index": 0
           }
