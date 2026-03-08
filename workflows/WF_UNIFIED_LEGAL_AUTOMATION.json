@@ -37,7 +37,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $items('Webhook Case Create')[0].json.body; const rows = items.map(i=>i.json); const exists = rows.some(r => String(r['код_дела']) === String(body.case_code)); return [{...body, exists}];"
+        "jsCode": "const raw = $items('Webhook Case Create')[0].json;\nconst body = (raw && typeof raw.body === 'object' && raw.body !== null) ? raw.body : raw;\nconst rows = items.map(i => i.json);\nconst code = String(body.case_code || '').trim();\nconst exists = rows.some(r => String(r['код_дела'] || '').trim() === code);\nreturn [{ ...body, case_code: code, exists }];"
       },
       "name": "CASE_CREATE_AND_FOLDERS :: Check Case Code",
       "type": "n8n-nodes-base.code",
@@ -283,7 +283,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const b = $json.body || {};\nconst event_id = String(Date.now());\nconst event_type = b.event_type || 'court_hearing';\nreturn [{ ...b, event_type, event_id, created_at: new Date().toISOString() }];"
+        "jsCode": "const raw = $json || {};\nconst b = (raw && typeof raw.body === 'object' && raw.body !== null) ? raw.body : raw;\nconst event_id = String(Date.now());\nconst event_type = b.event_type || 'court_hearing';\nreturn [{ ...b, event_type, event_id, created_at: new Date().toISOString() }];"
       },
       "name": "CASE_EVENT_CREATE :: Prepare",
       "type": "n8n-nodes-base.code",
@@ -726,7 +726,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const m = $json.message || {};\nconst metaText = [m.caption, m.text].filter(Boolean).join(' ');\nconst caseMatch = metaText.match(/C-\\d{4}-\\d{3}|\\b\\d{4,}\\b/);\nconst case_code = caseMatch ? caseMatch[0] : null;\nconst photo = m.photo?.length ? m.photo[m.photo.length - 1] : null;\nconst document = m.document || null;\nconst file_id = document?.file_id || photo?.file_id || null;\nconst extRaw = (document?.file_name || '').split('.').pop()?.toLowerCase();\nconst ext = photo ? 'jpg' : (extRaw || null);\nconst mime = document?.mime_type || (photo ? 'image/jpeg' : null);\nconst allowed = new Set(['jpg','jpeg','png','pdf','doc','docx','txt']);\nif (!file_id) {\n  return [{ invalid: true, notFound: true, error_text: 'Не найден файл. Отправьте фото или документ (PDF/DOCX/TXT).', chat_id: m.chat?.id }];\n}\nif (!case_code) {\n  return [{ invalid: true, notFound: true, error_text: 'Не найден номер дела. Укажите его в подписи, например: C-2025-001.', chat_id: m.chat?.id }];\n}\nif (!ext || !allowed.has(ext)) {\n  return [{ invalid: true, notFound: true, error_text: 'Поддерживаются только фото, PDF, DOC/DOCX и TXT.', chat_id: m.chat?.id, case_code }];\n}\nreturn [{ case_code, file_id, chat_id: m.chat?.id, from_id: m.from?.id, original_filename: document?.file_name || null, detected_ext: ext, detected_mime: mime, invalid: false }];"
+        "jsCode": "const m = $json.message || {};\nconst metaText = [m.caption, m.text].filter(Boolean).join(' ');\nconst caseMatch = metaText.match(/[АA]\\d{2}-\\d+\\/\\d{4}|C-\\d{4}-\\d{3}|\\b\\d{4,}\\b/i);\nconst case_code = caseMatch ? caseMatch[0].toUpperCase() : null;\nconst photo = m.photo?.length ? m.photo[m.photo.length - 1] : null;\nconst document = m.document || null;\nconst file_id = document?.file_id || photo?.file_id || null;\nconst extRaw = (document?.file_name || '').split('.').pop()?.toLowerCase();\nconst ext = photo ? 'jpg' : (extRaw || null);\nconst mime = document?.mime_type || (photo ? 'image/jpeg' : null);\nconst allowed = new Set(['jpg','jpeg','png','pdf','doc','docx','txt']);\nif (!file_id) {\n  return [{ invalid: true, notFound: true, error_text: 'Не найден файл. Отправьте фото или документ (PDF/DOCX/TXT).', chat_id: m.chat?.id }];\n}\nif (!case_code) {\n  return [{ invalid: true, notFound: true, error_text: 'Не найден номер дела. Укажите его в подписи, например: A40-12345/2026.', chat_id: m.chat?.id }];\n}\nif (ext && !allowed.has(ext)) {\n  return [{ invalid: true, notFound: true, error_text: `Недопустимый тип файла: .${ext}. Разрешено: jpg, jpeg, png, pdf, doc, docx, txt.`, chat_id: m.chat?.id }];\n}\nreturn [{\n  invalid: false,\n  case_code,\n  from_id: m.from?.id || null,\n  chat_id: m.chat?.id || null,\n  file_id,\n  detected_ext: ext,\n  mime_hint: mime\n}];"
       },
       "name": "TELEGRAM_DOCUMENT_INGEST :: Parse",
       "type": "n8n-nodes-base.code",
@@ -980,7 +980,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const b = $json.body || {};\nconst binary = $binary || {};\n\nlet extractedFromFile = '';\nif (binary.file?.data) {\n  const mime = binary.file.mimeType || '';\n  const fileName = binary.file.fileName || 'uploaded_file';\n  if (mime.startsWith('text/')) {\n    extractedFromFile = Buffer.from(binary.file.data, 'base64').toString('utf8');\n  } else {\n    extractedFromFile = `[Файл '${fileName}' (${mime || 'unknown mime'}) получен, но автоизвлечение текста не выполнено. Передайте text/document_text или добавьте OCR/парсер в workflow.]`;\n  }\n}\n\nconst documentText = String(b.document_text || b.text || b.case_text || extractedFromFile || '').trim();\nif (!documentText) {\n  throw new Error('Передайте текст дела в body.document_text / body.text / body.case_text или прикрепите текстовый файл в binary.file');\n}\n\nreturn [{\n  case_code: b.case_code || null,\n  jurisdiction: b.jurisdiction || 'Россия',\n  document_text: documentText\n}];"
+        "jsCode": "const raw = $json || {};\nconst b = (raw && typeof raw.body === 'object' && raw.body !== null) ? raw.body : raw;\nconst binary = $binary || {};\n\nlet extractedFromFile = '';\nif (binary.file?.data) {\n  const mime = binary.file.mimeType || '';\n  const fileName = binary.file.fileName || 'uploaded_file';\n  if (mime.startsWith('text/')) {\n    extractedFromFile = Buffer.from(binary.file.data, 'base64').toString('utf8');\n  } else {\n    extractedFromFile = `[Файл '${fileName}' (${mime || 'unknown mime'}) получен, но автоизвлечение текста не выполнено. Передайте text/document_text или добавьте OCR/парсер в workflow.]`;\n  }\n}\n\nconst documentText = String(b.document_text || b.text || b.case_text || extractedFromFile || '').trim();\nif (!documentText) {\n  throw new Error('Передайте текст дела в body.document_text / body.text / body.case_text или прикрепите текстовый файл в binary.file');\n}\n\nreturn [{\n  case_code: b.case_code || null,\n  jurisdiction: b.jurisdiction || 'Россия',\n  document_text: documentText\n}];"
       },
       "name": "AI_LEGAL :: Prepare Input",
       "type": "n8n-nodes-base.code",

@@ -3,112 +3,158 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Legal Automation Portal</title>
+    <title>Юридический портал - пошаговый режим</title>
     <style>
-      body { font-family: Arial, sans-serif; margin: 20px; color: #1f2937; }
-      h1, h2 { margin-bottom: 10px; }
-      section { border: 1px solid #d1d5db; border-radius: 8px; padding: 14px; margin-bottom: 16px; }
-      label { display: block; margin-top: 8px; font-weight: 600; }
-      input, textarea, button { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
-      textarea { min-height: 120px; resize: vertical; }
-      button { margin-top: 12px; cursor: pointer; }
+      body { font-family: Arial, sans-serif; margin: 20px; color: #1f2937; background: #f8fafc; }
+      h1, h2, h3 { margin-bottom: 10px; }
+      h1 { font-size: 36px; margin-top: 0; }
+      .intro { margin: 0 0 14px; color: #374151; font-size: 18px; }
+      section { border: 1px solid #d1d5db; border-radius: 10px; padding: 14px; margin-bottom: 16px; background: #fff; }
+      .step { border-left: 5px solid #2563eb; }
+      .step-title { margin-top: 0; font-size: 24px; }
+      .step-subtitle { margin: 0 0 10px; color: #4b5563; font-size: 16px; }
+      label { display: block; margin-top: 8px; font-weight: 600; font-size: 17px; }
+      input, textarea, button { width: 100%; padding: 10px; margin-top: 4px; box-sizing: border-box; font-size: 18px; }
+      textarea { min-height: 140px; resize: vertical; }
+      button { margin-top: 12px; cursor: pointer; border: 1px solid #9ca3af; background: #f3f4f6; border-radius: 6px; }
+      button:hover { background: #e5e7eb; }
+      .primary { background: #dbeafe; border-color: #60a5fa; }
+      .primary:hover { background: #bfdbfe; }
       .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-      .small { font-size: 12px; color: #6b7280; }
+      .small { font-size: 15px; color: #374151; }
+      .hint { margin: 8px 0 0; padding: 8px 10px; border-radius: 6px; background: #f9fafb; color: #374151; }
       .ok { color: #065f46; }
       .error { color: #b91c1c; }
       .hidden { display: none; }
       .inline { display: inline-flex; align-items: center; gap: 8px; width: auto; }
+      .inline input { width: auto; margin: 0; }
+      .status-pill { display: inline-block; margin-left: 8px; padding: 3px 8px; border-radius: 999px; font-size: 13px; border: 1px solid #d1d5db; background: #fff; }
       ul { margin: 0; padding-left: 18px; }
+      pre { white-space: pre-wrap; word-break: break-word; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; }
+      details { margin-top: 8px; }
+      summary { cursor: pointer; font-weight: 700; }
+      @media (max-width: 900px) { .row { grid-template-columns: 1fr; } }
     </style>
   </head>
   <body>
     <h1>Юридический портал</h1>
+    <p class="intro">Пошаговый режим для быстрого старта: просто двигайтесь сверху вниз.</p>
 
-    <section>
-      <h2>Режим и API</h2>
-      <label>Backend API Base URL
-        <input id="apiBase" value="" />
+    <section class="step">
+      <h2 class="step-title">Шаг 1. Подключение <span id="configState" class="status-pill">Не сохранено</span></h2>
+      <p class="step-subtitle">Сделайте один раз. Обычно нужен только адрес сервера.</p>
+      <label>Адрес сервера приложения
+        <input id="apiBase" value="" placeholder="Например: http://localhost:8000" />
       </label>
-      <label class="inline">
-        <input type="checkbox" id="directN8nMode" />
-        Direct n8n mode (dev only)
+      <label>Токен доступа (если включена защита API)
+        <input id="bearerToken" placeholder="Нужен только при REQUIRE_AUTH=true" />
       </label>
-      <div id="n8nConfig" class="hidden">
-        <label>n8n Base URL
-          <input id="n8nBase" value="" />
+      <button class="primary" id="saveConfig">Сохранить настройки подключения</button>
+      <p id="configMessage" class="small"></p>
+      <p class="small hint">Для обычной работы этот экран можно больше не трогать.</p>
+
+      <details>
+        <summary>Для разработчика: прямой режим n8n</summary>
+        <label class="inline">
+          <input type="checkbox" id="directN8nMode" />
+          Включить прямой режим n8n
         </label>
-        <div class="row">
-          <label>Case path
-            <input id="casePath" value="" />
+        <div id="n8nConfig" class="hidden">
+          <label>Базовый адрес n8n
+            <input id="n8nBase" value="" />
           </label>
-          <label>Event path
-            <input id="eventPath" value="" />
+          <div class="row">
+            <label>Путь создания дела
+              <input id="casePath" value="" />
+            </label>
+            <label>Путь создания события
+              <input id="eventPath" value="" />
+            </label>
+          </div>
+          <label>Путь AI-консультации
+            <input id="aiPath" value="" />
           </label>
         </div>
-        <label>AI path
-          <input id="aiPath" value="" />
-        </label>
-      </div>
-      <label>Bearer token (optional)
-        <input id="bearerToken" placeholder="for REQUIRE_AUTH=true" />
-      </label>
-      <button id="saveConfig">Сохранить конфигурацию</button>
-      <p id="configMessage" class="small"></p>
+      </details>
     </section>
 
-    <section>
-      <h2>Создание дела</h2>
+    <section class="step">
+      <h2 class="step-title">Шаг 2. Карточка дела</h2>
+      <p class="step-subtitle">Заполните реквизиты и нажмите «Создать дело».</p>
       <div class="row">
-        <label>Case code <input id="caseCode" value="A40-12345/2026" /></label>
-        <label>Case type <input id="caseType" value="arbitration_debt" /></label>
+        <label>Номер дела
+          <input id="caseCode" value="A40-12345/2026" />
+        </label>
+        <label>Категория дела
+          <input id="caseType" value="arbitration_debt" />
+        </label>
       </div>
       <div class="row">
-        <label>Client ref <input id="clientRef" value="client_001" /></label>
-        <label>Lawyer ref <input id="lawyerRef" value="lawyer_007" /></label>
+        <label>Идентификатор клиента
+          <input id="clientRef" value="client_001" />
+        </label>
+        <label>Идентификатор юриста
+          <input id="lawyerRef" value="lawyer_007" />
+        </label>
       </div>
       <div class="row">
-        <label>Jurisdiction <input id="jurisdiction" value="Россия" /></label>
-        <label>Status <input id="caseStatus" value="new" /></label>
+        <label>Юрисдикция
+          <input id="jurisdiction" value="Россия" />
+        </label>
+        <label>Статус дела
+          <input id="caseStatus" value="new" />
+        </label>
       </div>
-      <button id="createCaseBtn">Создать дело</button>
+      <button class="primary" id="createCaseBtn">Создать дело</button>
       <pre id="createCaseResult"></pre>
     </section>
 
-    <section>
-      <h2>Создание события</h2>
+    <section class="step">
+      <h2 class="step-title">Шаг 3. Судебное событие</h2>
+      <p class="step-subtitle">Укажите время и чат юриста для напоминаний.</p>
       <div class="row">
-        <label>Event type <input id="eventType" value="court_hearing" /></label>
-        <label>Lawyer chat id <input id="lawyerChatId" value="123456789" /></label>
+        <label>Тип события
+          <input id="eventType" value="court_hearing" />
+        </label>
+        <label>Чат юриста в Telegram
+          <input id="lawyerChatId" value="123456789" />
+        </label>
       </div>
       <div class="row">
-        <label>Start at (ISO) <input id="startAt" value="2026-03-20T07:00:00.000Z" /></label>
-        <label>End at (ISO) <input id="endAt" value="2026-03-20T08:00:00.000Z" /></label>
+        <label>Начало (формат ISO)
+          <input id="startAt" value="2026-03-20T07:00:00.000Z" />
+        </label>
+        <label>Окончание (формат ISO)
+          <input id="endAt" value="2026-03-20T08:00:00.000Z" />
+        </label>
       </div>
-      <button id="createEventBtn">Создать событие</button>
+      <button class="primary" id="createEventBtn">Создать событие</button>
       <pre id="createEventResult"></pre>
     </section>
 
-    <section>
-      <h2>AI-консультация</h2>
-      <label>Document text
+    <section class="step">
+      <h2 class="step-title">Шаг 4. Правовой разбор</h2>
+      <p class="step-subtitle">Вставьте текст документа и получите структурированный ответ.</p>
+      <label>Текст материалов дела
         <textarea id="documentText">Кратко опиши правовые риски и дальнейшие шаги.</textarea>
       </label>
-      <button id="consultAiBtn">Отправить в AI</button>
+      <button class="primary" id="consultAiBtn">Получить консультацию</button>
       <pre id="consultAiResult"></pre>
     </section>
 
-    <section>
-      <h2>Файлы</h2>
+    <section class="step">
+      <h2 class="step-title">Шаг 5. Документы по делу</h2>
+      <p class="step-subtitle">Можно загружать несколько файлов сразу, затем обновлять список.</p>
       <div class="row">
-        <label>Case code для списка/загрузки
+        <label>Номер дела для списка и загрузки
           <input id="filesCaseCode" value="A40-12345/2026" />
         </label>
-        <label>Файлы
+        <label>Выберите файлы
           <input id="filesInput" type="file" multiple />
         </label>
       </div>
-      <button id="uploadFilesBtn">Загрузить файлы</button>
-      <button id="listFilesBtn">Обновить список</button>
+      <button class="primary" id="uploadFilesBtn">Загрузить документы</button>
+      <button id="listFilesBtn">Обновить список документов</button>
       <pre id="filesResult"></pre>
       <ul id="filesList"></ul>
     </section>
@@ -134,6 +180,7 @@
         aiPath: document.getElementById("aiPath"),
         bearerToken: document.getElementById("bearerToken"),
         configMessage: document.getElementById("configMessage"),
+        configState: document.getElementById("configState"),
       };
 
       const readConfig = () => {
@@ -166,6 +213,8 @@
         ids.aiPath.value = cfg.aiPath || ids.aiPath.value;
         ids.bearerToken.value = cfg.bearerToken || "";
         ids.n8nConfig.classList.toggle("hidden", !ids.directN8nMode.checked);
+        ids.configState.textContent = "Сохранено";
+        ids.configState.className = "status-pill ok";
       };
 
       const apiHeaders = () => {
@@ -183,9 +232,9 @@
 
       const friendlyError = (error) => {
         if (error.name === "TypeError") {
-          return "Сеть недоступна или backend не отвечает. Проверьте API URL и CORS.";
+          return "Не удалось подключиться к серверу. Проверьте адрес API и настройки CORS.";
         }
-        return error.message || "Неизвестная ошибка.";
+        return error.message || "Произошла неизвестная ошибка.";
       };
 
       const callJson = async ({ url, body, method = "POST" }) => {
@@ -196,7 +245,7 @@
         });
         const data = await safeJson(response);
         if (!response.ok) {
-          const message = data.detail || data.message || `HTTP ${response.status}`;
+          const message = data.detail || data.message || `Ошибка HTTP ${response.status}`;
           throw new Error(typeof message === "string" ? message : JSON.stringify(message));
         }
         return data;
@@ -254,8 +303,10 @@
         const cfg = getConfig();
         writeConfig(cfg);
         ids.n8nConfig.classList.toggle("hidden", !cfg.directN8nMode);
-        ids.configMessage.textContent = "Конфигурация сохранена.";
+        ids.configMessage.textContent = "Настройки сохранены.";
         ids.configMessage.className = "small ok";
+        ids.configState.textContent = "Сохранено";
+        ids.configState.className = "status-pill ok";
       });
 
       ids.directN8nMode.addEventListener("change", () => {
@@ -297,11 +348,11 @@
         const caseCode = document.getElementById("filesCaseCode").value.trim();
         const input = document.getElementById("filesInput");
         if (!caseCode) {
-          setResult("filesResult", "Укажите case_code", true);
+          setResult("filesResult", "Укажите номер дела.", true);
           return;
         }
         if (!input.files.length) {
-          setResult("filesResult", "Выберите хотя бы один файл", true);
+          setResult("filesResult", "Выберите хотя бы один файл.", true);
           return;
         }
         const formData = new FormData();
@@ -316,7 +367,7 @@
           });
           const data = await safeJson(response);
           if (!response.ok) {
-            const message = data.detail || `HTTP ${response.status}`;
+            const message = data.detail || `Ошибка HTTP ${response.status}`;
             throw new Error(typeof message === "string" ? message : JSON.stringify(message));
           }
           setResult("filesResult", data);
@@ -329,7 +380,7 @@
         const urls = getUrls();
         const caseCode = document.getElementById("filesCaseCode").value.trim();
         if (!caseCode) {
-          setResult("filesResult", "Укажите case_code", true);
+          setResult("filesResult", "Укажите номер дела.", true);
           return;
         }
         try {
@@ -339,7 +390,7 @@
           );
           const data = await safeJson(response);
           if (!response.ok) {
-            const message = data.detail || `HTTP ${response.status}`;
+            const message = data.detail || `Ошибка HTTP ${response.status}`;
             throw new Error(typeof message === "string" ? message : JSON.stringify(message));
           }
           setResult("filesResult", data);
@@ -347,7 +398,7 @@
           list.innerHTML = "";
           for (const item of data.items || []) {
             const li = document.createElement("li");
-            li.innerHTML = `${item.name} (${item.size} bytes) - <a href="${item.preview_url}" target="_blank">preview</a> / <a href="${item.download_url}" target="_blank">download</a>`;
+            li.innerHTML = `${item.name} (${item.size} байт) - <a href="${item.preview_url}" target="_blank">предпросмотр</a> / <a href="${item.download_url}" target="_blank">скачать</a>`;
             list.appendChild(li);
           }
         } catch (error) {
@@ -359,6 +410,8 @@
       applyConfig(savedConfig);
       if (!savedConfig) {
         applyConfig(defaultConfig);
+        ids.configState.textContent = "Используются значения по умолчанию";
+        ids.configState.className = "status-pill";
       }
       ids.n8nConfig.classList.toggle("hidden", !ids.directN8nMode.checked);
     </script>
