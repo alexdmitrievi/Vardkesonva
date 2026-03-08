@@ -1,0 +1,21 @@
+# Python caches and test artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Local environment files
+.env
+backend/.env
+
+# Local virtualenvs
+.venv/
+venv/
+
+# Local storage payloads (keep index file)
+backend/storage/*
+!backend/storage/index.json
+
+# OS/IDE
+.DS_Store
+Thumbs.db

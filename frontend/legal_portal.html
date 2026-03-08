@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Legal Automation Portal</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; color: #1f2937; }
+      h1, h2 { margin-bottom: 10px; }
+      section { border: 1px solid #d1d5db; border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+      label { display: block; margin-top: 8px; font-weight: 600; }
+      input, textarea, button { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+      textarea { min-height: 120px; resize: vertical; }
+      button { margin-top: 12px; cursor: pointer; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .small { font-size: 12px; color: #6b7280; }
+      .ok { color: #065f46; }
+      .error { color: #b91c1c; }
+      .hidden { display: none; }
+      .inline { display: inline-flex; align-items: center; gap: 8px; width: auto; }
+      ul { margin: 0; padding-left: 18px; }
+    </style>
+  </head>
+  <body>
+    <h1>Юридический портал</h1>
+
+    <section>
+      <h2>Режим и API</h2>
+      <label>Backend API Base URL
+        <input id="apiBase" value="" />
+      </label>
+      <label class="inline">
+        <input type="checkbox" id="directN8nMode" />
+        Direct n8n mode (dev only)
+      </label>
+      <div id="n8nConfig" class="hidden">
+        <label>n8n Base URL
+          <input id="n8nBase" value="" />
+        </label>
+        <div class="row">
+          <label>Case path
+            <input id="casePath" value="" />
+          </label>
+          <label>Event path
+            <input id="eventPath" value="" />
+          </label>
+        </div>
+        <label>AI path
+          <input id="aiPath" value="" />
+        </label>
+      </div>
+      <label>Bearer token (optional)
+        <input id="bearerToken" placeholder="for REQUIRE_AUTH=true" />
+      </label>
+      <button id="saveConfig">Сохранить конфигурацию</button>
+      <p id="configMessage" class="small"></p>
+    </section>
+
+    <section>
+      <h2>Создание дела</h2>
+      <div class="row">
+        <label>Case code <input id="caseCode" value="A40-12345/2026" /></label>
+        <label>Case type <input id="caseType" value="arbitration_debt" /></label>
+      </div>
+      <div class="row">
+        <label>Client ref <input id="clientRef" value="client_001" /></label>
+        <label>Lawyer ref <input id="lawyerRef" value="lawyer_007" /></label>
+      </div>
+      <div class="row">
+        <label>Jurisdiction <input id="jurisdiction" value="Россия" /></label>
+        <label>Status <input id="caseStatus" value="new" /></label>
+      </div>
+      <button id="createCaseBtn">Создать дело</button>
+      <pre id="createCaseResult"></pre>
+    </section>
+
+    <section>
+      <h2>Создание события</h2>
+      <div class="row">
+        <label>Event type <input id="eventType" value="court_hearing" /></label>
+        <label>Lawyer chat id <input id="lawyerChatId" value="123456789" /></label>
+      </div>
+      <div class="row">
+        <label>Start at (ISO) <input id="startAt" value="2026-03-20T07:00:00.000Z" /></label>
+        <label>End at (ISO) <input id="endAt" value="2026-03-20T08:00:00.000Z" /></label>
+      </div>
+      <button id="createEventBtn">Создать событие</button>
+      <pre id="createEventResult"></pre>
+    </section>
+
+    <section>
+      <h2>AI-консультация</h2>
+      <label>Document text
+        <textarea id="documentText">Кратко опиши правовые риски и дальнейшие шаги.</textarea>
+      </label>
+      <button id="consultAiBtn">Отправить в AI</button>
+      <pre id="consultAiResult"></pre>
+    </section>
+
+    <section>
+      <h2>Файлы</h2>
+      <div class="row">
+        <label>Case code для списка/загрузки
+          <input id="filesCaseCode" value="A40-12345/2026" />
+        </label>
+        <label>Файлы
+          <input id="filesInput" type="file" multiple />
+        </label>
+      </div>
+      <button id="uploadFilesBtn">Загрузить файлы</button>
+      <button id="listFilesBtn">Обновить список</button>
+      <pre id="filesResult"></pre>
+      <ul id="filesList"></ul>
+    </section>
+
+    <script src="./config.js"></script>
+    <script>
+      const defaultConfig = window.LEGAL_PORTAL_CONFIG || {
+        apiBase: "http://localhost:8000",
+        directN8nMode: false,
+        n8nBase: "http://localhost:5678",
+        casePath: "/webhook/case/create",
+        eventPath: "/webhook/case/event/create",
+        aiPath: "/webhook/ai/legal/consult",
+      };
+
+      const ids = {
+        apiBase: document.getElementById("apiBase"),
+        directN8nMode: document.getElementById("directN8nMode"),
+        n8nConfig: document.getElementById("n8nConfig"),
+        n8nBase: document.getElementById("n8nBase"),
+        casePath: document.getElementById("casePath"),
+        eventPath: document.getElementById("eventPath"),
+        aiPath: document.getElementById("aiPath"),
+        bearerToken: document.getElementById("bearerToken"),
+        configMessage: document.getElementById("configMessage"),
+      };
+
+      const readConfig = () => {
+        const raw = localStorage.getItem("legalPortalConfig");
+        if (!raw) return null;
+        try { return JSON.parse(raw); } catch (_) { return null; }
+      };
+
+      const writeConfig = (config) => {
+        localStorage.setItem("legalPortalConfig", JSON.stringify(config));
+      };
+
+      const getConfig = () => ({
+        apiBase: ids.apiBase.value.trim().replace(/\/$/, ""),
+        directN8nMode: ids.directN8nMode.checked,
+        n8nBase: ids.n8nBase.value.trim().replace(/\/$/, ""),
+        casePath: ids.casePath.value.trim(),
+        eventPath: ids.eventPath.value.trim(),
+        aiPath: ids.aiPath.value.trim(),
+        bearerToken: ids.bearerToken.value.trim(),
+      });
+
+      const applyConfig = (cfg) => {
+        if (!cfg) return;
+        ids.apiBase.value = cfg.apiBase || ids.apiBase.value;
+        ids.directN8nMode.checked = Boolean(cfg.directN8nMode);
+        ids.n8nBase.value = cfg.n8nBase || ids.n8nBase.value;
+        ids.casePath.value = cfg.casePath || ids.casePath.value;
+        ids.eventPath.value = cfg.eventPath || ids.eventPath.value;
+        ids.aiPath.value = cfg.aiPath || ids.aiPath.value;
+        ids.bearerToken.value = cfg.bearerToken || "";
+        ids.n8nConfig.classList.toggle("hidden", !ids.directN8nMode.checked);
+      };
+
+      const apiHeaders = () => {
+        const token = ids.bearerToken.value.trim();
+        const headers = {};
+        if (token) headers.Authorization = `Bearer ${token}`;
+        return headers;
+      };
+
+      const safeJson = async (response) => {
+        const text = await response.text();
+        if (!text) return {};
+        try { return JSON.parse(text); } catch (_) { return { raw: text }; }
+      };
+
+      const friendlyError = (error) => {
+        if (error.name === "TypeError") {
+          return "Сеть недоступна или backend не отвечает. Проверьте API URL и CORS.";
+        }
+        return error.message || "Неизвестная ошибка.";
+      };
+
+      const callJson = async ({ url, body, method = "POST" }) => {
+        const response = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json", ...apiHeaders() },
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        const data = await safeJson(response);
+        if (!response.ok) {
+          const message = data.detail || data.message || `HTTP ${response.status}`;
+          throw new Error(typeof message === "string" ? message : JSON.stringify(message));
+        }
+        return data;
+      };
+
+      const setResult = (id, payload, isError = false) => {
+        const el = document.getElementById(id);
+        el.className = isError ? "error" : "ok";
+        el.textContent = typeof payload === "string" ? payload : JSON.stringify(payload, null, 2);
+      };
+
+      const casePayload = () => ({
+        case_code: document.getElementById("caseCode").value.trim(),
+        case_type: document.getElementById("caseType").value.trim(),
+        client_ref: document.getElementById("clientRef").value.trim(),
+        lawyer_ref: document.getElementById("lawyerRef").value.trim(),
+        jurisdiction: document.getElementById("jurisdiction").value.trim(),
+        status: document.getElementById("caseStatus").value.trim(),
+      });
+
+      const eventPayload = () => ({
+        case_code: document.getElementById("caseCode").value.trim(),
+        event_type: document.getElementById("eventType").value.trim(),
+        start_at: document.getElementById("startAt").value.trim(),
+        end_at: document.getElementById("endAt").value.trim(),
+        lawyer_chat_id: document.getElementById("lawyerChatId").value.trim(),
+      });
+
+      const aiPayload = () => ({
+        case_code: document.getElementById("caseCode").value.trim(),
+        jurisdiction: document.getElementById("jurisdiction").value.trim(),
+        document_text: document.getElementById("documentText").value.trim(),
+      });
+
+      const getUrls = () => {
+        const cfg = getConfig();
+        return cfg.directN8nMode
+          ? {
+              caseCreate: `${cfg.n8nBase}${cfg.casePath}`,
+              eventCreate: `${cfg.n8nBase}${cfg.eventPath}`,
+              aiConsult: `${cfg.n8nBase}${cfg.aiPath}`,
+              filesList: `${cfg.apiBase}/api/v1/files`,
+              filesUpload: `${cfg.apiBase}/api/v1/files/upload`,
+            }
+          : {
+              caseCreate: `${cfg.apiBase}/api/v1/cases/create`,
+              eventCreate: `${cfg.apiBase}/api/v1/events/create`,
+              aiConsult: `${cfg.apiBase}/api/v1/ai/consult`,
+              filesList: `${cfg.apiBase}/api/v1/files`,
+              filesUpload: `${cfg.apiBase}/api/v1/files/upload`,
+            };
+      };
+
+      document.getElementById("saveConfig").addEventListener("click", () => {
+        const cfg = getConfig();
+        writeConfig(cfg);
+        ids.n8nConfig.classList.toggle("hidden", !cfg.directN8nMode);
+        ids.configMessage.textContent = "Конфигурация сохранена.";
+        ids.configMessage.className = "small ok";
+      });
+
+      ids.directN8nMode.addEventListener("change", () => {
+        ids.n8nConfig.classList.toggle("hidden", !ids.directN8nMode.checked);
+      });
+
+      document.getElementById("createCaseBtn").addEventListener("click", async () => {
+        try {
+          const urls = getUrls();
+          const data = await callJson({ url: urls.caseCreate, body: casePayload() });
+          setResult("createCaseResult", data);
+        } catch (error) {
+          setResult("createCaseResult", friendlyError(error), true);
+        }
+      });
+
+      document.getElementById("createEventBtn").addEventListener("click", async () => {
+        try {
+          const urls = getUrls();
+          const data = await callJson({ url: urls.eventCreate, body: eventPayload() });
+          setResult("createEventResult", data);
+        } catch (error) {
+          setResult("createEventResult", friendlyError(error), true);
+        }
+      });
+
+      document.getElementById("consultAiBtn").addEventListener("click", async () => {
+        try {
+          const urls = getUrls();
+          const data = await callJson({ url: urls.aiConsult, body: aiPayload() });
+          setResult("consultAiResult", data);
+        } catch (error) {
+          setResult("consultAiResult", friendlyError(error), true);
+        }
+      });
+
+      document.getElementById("uploadFilesBtn").addEventListener("click", async () => {
+        const urls = getUrls();
+        const caseCode = document.getElementById("filesCaseCode").value.trim();
+        const input = document.getElementById("filesInput");
+        if (!caseCode) {
+          setResult("filesResult", "Укажите case_code", true);
+          return;
+        }
+        if (!input.files.length) {
+          setResult("filesResult", "Выберите хотя бы один файл", true);
+          return;
+        }
+        const formData = new FormData();
+        formData.append("case_code", caseCode);
+        for (const file of input.files) formData.append("files", file);
+
+        try {
+          const response = await fetch(urls.filesUpload, {
+            method: "POST",
+            headers: { ...apiHeaders() },
+            body: formData,
+          });
+          const data = await safeJson(response);
+          if (!response.ok) {
+            const message = data.detail || `HTTP ${response.status}`;
+            throw new Error(typeof message === "string" ? message : JSON.stringify(message));
+          }
+          setResult("filesResult", data);
+        } catch (error) {
+          setResult("filesResult", friendlyError(error), true);
+        }
+      });
+
+      document.getElementById("listFilesBtn").addEventListener("click", async () => {
+        const urls = getUrls();
+        const caseCode = document.getElementById("filesCaseCode").value.trim();
+        if (!caseCode) {
+          setResult("filesResult", "Укажите case_code", true);
+          return;
+        }
+        try {
+          const response = await fetch(
+            `${urls.filesList}?case_code=${encodeURIComponent(caseCode)}`,
+            { headers: { ...apiHeaders() } }
+          );
+          const data = await safeJson(response);
+          if (!response.ok) {
+            const message = data.detail || `HTTP ${response.status}`;
+            throw new Error(typeof message === "string" ? message : JSON.stringify(message));
+          }
+          setResult("filesResult", data);
+          const list = document.getElementById("filesList");
+          list.innerHTML = "";
+          for (const item of data.items || []) {
+            const li = document.createElement("li");
+            li.innerHTML = `${item.name} (${item.size} bytes) - <a href="${item.preview_url}" target="_blank">preview</a> / <a href="${item.download_url}" target="_blank">download</a>`;
+            list.appendChild(li);
+          }
+        } catch (error) {
+          setResult("filesResult", friendlyError(error), true);
+        }
+      });
+
+      const savedConfig = readConfig();
+      applyConfig(savedConfig);
+      if (!savedConfig) {
+        applyConfig(defaultConfig);
+      }
+      ids.n8nConfig.classList.toggle("hidden", !ids.directN8nMode.checked);
+    </script>
+  </body>
+</html>
