@@ -19,6 +19,14 @@ class EventCreateRequest(BaseModel):
     start_at: datetime
     end_at: datetime
     lawyer_chat_id: str = Field(min_length=1, max_length=64)
+    event_date: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    timezone: Optional[str] = None
+    reminder_24h: Optional[bool] = True
+    reminder_2h: Optional[bool] = True
+    reminder_30m: Optional[bool] = False
+    custom_reminder_minutes: Optional[int] = None
 
 
 class AIConsultRequest(BaseModel):

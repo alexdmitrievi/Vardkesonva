@@ -283,7 +283,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const raw = $json || {};\nconst b = (raw && typeof raw.body === 'object' && raw.body !== null) ? raw.body : raw;\nconst event_id = String(Date.now());\nconst event_type = b.event_type || 'court_hearing';\nreturn [{ ...b, event_type, event_id, created_at: new Date().toISOString() }];"
+        "jsCode": "const raw = $json || {};\nconst b = (raw && typeof raw.body === 'object' && raw.body !== null) ? raw.body : raw;\nconst event_id = String(Date.now());\nconst event_type = b.event_type || 'court_hearing';\nconst timezone = b.timezone || 'Europe/Moscow';\nconst event_date = b.event_date || null;\nconst start_time = b.start_time || null;\nconst end_time = b.end_time || null;\nconst start_at = b.start_at || (event_date && start_time ? `${event_date}T${start_time}:00+03:00` : null);\nconst end_at = b.end_at || (event_date && end_time ? `${event_date}T${end_time}:00+03:00` : null);\nif (!start_at || !end_at) {\n  throw new Error('Для события нужны start_at и end_at (или event_date + start_time + end_time).');\n}\nreturn [{\n  ...b,\n  event_type,\n  event_id,\n  timezone,\n  event_date,\n  start_time,\n  end_time,\n  start_at,\n  end_at,\n  reminder_24h: b.reminder_24h !== false,\n  reminder_2h: b.reminder_2h !== false,\n  reminder_30m: b.reminder_30m === true,\n  custom_reminder_minutes: Number(b.custom_reminder_minutes || 0) || 0,\n  created_at: new Date().toISOString()\n}];"
       },
       "name": "CASE_EVENT_CREATE :: Prepare",
       "type": "n8n-nodes-base.code",
@@ -370,7 +370,7 @@
             "telegram_chat_id": "={{$json.lawyer_chat_id}}",
             "текст_сообщения": "={{\"Напоминание: событие по делу \" + $json.case_code + \" через 24 часа.\"}}",
             "отправить_в": "={{DateTime.fromISO($json.start_at).minus({hours:24}).toISO()}}",
-            "статус": "pending",
+            "статус": "={{$json.reminder_24h === false ? 'cancelled' : 'pending'}}",
             "отправлено_в": ""
           }
         }
@@ -403,7 +403,7 @@
             "telegram_chat_id": "={{$json.lawyer_chat_id}}",
             "текст_сообщения": "={{\"Напоминание: событие по делу \" + $json.case_code + \" через 2 часа.\"}}",
             "отправить_в": "={{DateTime.fromISO($json.start_at).minus({hours:2}).toISO()}}",
-            "статус": "pending",
+            "статус": "={{$json.reminder_2h === false ? 'cancelled' : 'pending'}}",
             "отправлено_в": ""
           }
         }
@@ -441,7 +441,7 @@
         "conditions": {
           "boolean": [
             {
-              "value1": "={{Boolean($json.client_chat_id) && Boolean($json.payment_due_at)}}",
+              "value1": "={{Boolean(($json.client_chat_id && $json.payment_due_at) || $json.reminder_30m === true || Number($json.custom_reminder_minutes || 0) > 0)}}",
               "value2": true
             }
           ]
@@ -463,13 +463,13 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "id_напоминания": "={{$json.event_id + \"-payment\"}}",
+            "id_напоминания": "={{$json.payment_due_at ? ($json.event_id + '-payment') : (Number($json.custom_reminder_minutes || 0) > 0 ? ($json.event_id + '-custom') : ($json.event_id + '-30m'))}}",
             "id_события": "={{$json.event_id}}",
-            "роль_получателя": "client",
-            "telegram_chat_id": "={{$json.client_chat_id}}",
-            "текст_сообщения": "={{\"Напоминание об оплате по делу \" + $json.case_code + ($json.payment_amount ? (\". Сумма: \" + $json.payment_amount) : \"\")}}",
-            "отправить_в": "={{$json.payment_due_at}}",
-            "статус": "pending",
+            "роль_получателя": "={{$json.payment_due_at ? 'client' : 'lawyer'}}",
+            "telegram_chat_id": "={{$json.payment_due_at ? $json.client_chat_id : $json.lawyer_chat_id}}",
+            "текст_сообщения": "={{$json.payment_due_at ? ('Напоминание об оплате по делу ' + $json.case_code + ($json.payment_amount ? ('. Сумма: ' + $json.payment_amount) : '')) : ('Напоминание: событие по делу ' + $json.case_code + (Number($json.custom_reminder_minutes || 0) > 0 ? (' через ' + Number($json.custom_reminder_minutes || 0) + ' минут.') : ' через 30 минут.'))}}",
+            "отправить_в": "={{$json.payment_due_at ? $json.payment_due_at : DateTime.fromISO($json.start_at).minus({minutes: Number($json.custom_reminder_minutes || 30)}).toISO()}}",
+            "статус": "={{$json.payment_due_at ? 'pending' : (($json.reminder_30m === true || Number($json.custom_reminder_minutes || 0) > 0) ? 'pending' : 'cancelled')}}",
             "отправлено_в": ""
           }
         }

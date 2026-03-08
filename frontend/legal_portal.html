@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Юридический портал - пошаговый режим</title>
+    <title>Юридический портал</title>
     <style>
       body { font-family: Arial, sans-serif; margin: 20px; color: #1f2937; background: #f8fafc; }
       h1, h2, h3 { margin-bottom: 10px; }
@@ -28,6 +28,8 @@
       .hidden { display: none; }
       .inline { display: inline-flex; align-items: center; gap: 8px; width: auto; }
       .inline input { width: auto; margin: 0; }
+      .checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+      .checkbox-grid label { margin: 0; font-weight: 500; }
       .status-pill { display: inline-block; margin-left: 8px; padding: 3px 8px; border-radius: 999px; font-size: 13px; border: 1px solid #d1d5db; background: #fff; }
       ul { margin: 0; padding-left: 18px; }
       pre { white-space: pre-wrap; word-break: break-word; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; }
@@ -40,7 +42,7 @@
     <h1>Юридический портал</h1>
     <p class="intro">Пошаговый режим для быстрого старта: просто двигайтесь сверху вниз.</p>
 
-    <section class="step">
+    <section class="step" id="setupSection">
       <h2 class="step-title">Шаг 1. Подключение <span id="configState" class="status-pill">Не сохранено</span></h2>
       <p class="step-subtitle">Сделайте один раз. Обычно нужен только адрес сервера.</p>
       <label>Адрес сервера приложения
@@ -111,7 +113,7 @@
 
     <section class="step">
       <h2 class="step-title">Шаг 3. Судебное событие</h2>
-      <p class="step-subtitle">Укажите время и чат юриста для напоминаний.</p>
+      <p class="step-subtitle">Укажите дату, время и варианты напоминаний.</p>
       <div class="row">
         <label>Тип события
           <input id="eventType" value="court_hearing" />
@@ -121,11 +123,34 @@
         </label>
       </div>
       <div class="row">
-        <label>Начало (формат ISO)
-          <input id="startAt" value="2026-03-20T07:00:00.000Z" />
+        <label>Дата события
+          <input id="eventDate" type="date" value="2026-03-20" />
         </label>
-        <label>Окончание (формат ISO)
-          <input id="endAt" value="2026-03-20T08:00:00.000Z" />
+        <label>Часовой пояс
+          <select id="eventTimezone">
+            <option value="Europe/Moscow" selected>Москва (Europe/Moscow)</option>
+            <option value="UTC">UTC</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <label>Время начала
+          <input id="startTime" type="time" value="10:00" />
+        </label>
+        <label>Время окончания
+          <input id="endTime" type="time" value="11:00" />
+        </label>
+      </div>
+      <label>Напоминания для юриста</label>
+      <div class="checkbox-grid">
+        <label class="inline"><input id="reminder24h" type="checkbox" checked /> За 24 часа</label>
+        <label class="inline"><input id="reminder2h" type="checkbox" checked /> За 2 часа</label>
+        <label class="inline"><input id="reminder30m" type="checkbox" /> За 30 минут</label>
+        <label class="inline"><input id="customReminderEnabled" type="checkbox" /> Свой интервал (мин)</label>
+      </div>
+      <div class="row" id="customReminderRow">
+        <label>Свой интервал, минут до начала
+          <input id="customReminderMinutes" type="number" min="1" max="1440" value="45" />
         </label>
       </div>
       <button class="primary" id="createEventBtn">Создать событие</button>
@@ -168,9 +193,13 @@
         casePath: "/webhook/case/create",
         eventPath: "/webhook/case/event/create",
         aiPath: "/webhook/ai/legal/consult",
+        lawyerMode: true,
       };
+      const isDevMode = new URLSearchParams(window.location.search).get("dev") === "1";
+      const isLawyerMode = defaultConfig.lawyerMode !== false;
 
       const ids = {
+        setupSection: document.getElementById("setupSection"),
         apiBase: document.getElementById("apiBase"),
         directN8nMode: document.getElementById("directN8nMode"),
         n8nConfig: document.getElementById("n8nConfig"),
@@ -179,6 +208,16 @@
         eventPath: document.getElementById("eventPath"),
         aiPath: document.getElementById("aiPath"),
         bearerToken: document.getElementById("bearerToken"),
+        eventDate: document.getElementById("eventDate"),
+        eventTimezone: document.getElementById("eventTimezone"),
+        startTime: document.getElementById("startTime"),
+        endTime: document.getElementById("endTime"),
+        reminder24h: document.getElementById("reminder24h"),
+        reminder2h: document.getElementById("reminder2h"),
+        reminder30m: document.getElementById("reminder30m"),
+        customReminderEnabled: document.getElementById("customReminderEnabled"),
+        customReminderMinutes: document.getElementById("customReminderMinutes"),
+        customReminderRow: document.getElementById("customReminderRow"),
         configMessage: document.getElementById("configMessage"),
         configState: document.getElementById("configState"),
       };
@@ -203,6 +242,15 @@
         bearerToken: ids.bearerToken.value.trim(),
       });
 
+      const getEffectiveConfig = () => {
+        if (isLawyerMode && !isDevMode) {
+          return { ...defaultConfig };
+        }
+        const saved = readConfig();
+        if (saved) return saved;
+        return getConfig();
+      };
+
       const applyConfig = (cfg) => {
         if (!cfg) return;
         ids.apiBase.value = cfg.apiBase || ids.apiBase.value;
@@ -217,8 +265,14 @@
         ids.configState.className = "status-pill ok";
       };
 
+      const toIsoByTimezone = (datePart, timePart, timezone) => {
+        if (!datePart || !timePart) return "";
+        if (timezone === "Europe/Moscow") return `${datePart}T${timePart}:00+03:00`;
+        return `${datePart}T${timePart}:00Z`;
+      };
+
       const apiHeaders = () => {
-        const token = ids.bearerToken.value.trim();
+        const token = getEffectiveConfig().bearerToken || "";
         const headers = {};
         if (token) headers.Authorization = `Bearer ${token}`;
         return headers;
@@ -269,9 +323,19 @@
       const eventPayload = () => ({
         case_code: document.getElementById("caseCode").value.trim(),
         event_type: document.getElementById("eventType").value.trim(),
-        start_at: document.getElementById("startAt").value.trim(),
-        end_at: document.getElementById("endAt").value.trim(),
+        event_date: ids.eventDate.value.trim(),
+        start_time: ids.startTime.value.trim(),
+        end_time: ids.endTime.value.trim(),
+        timezone: ids.eventTimezone.value,
+        start_at: toIsoByTimezone(ids.eventDate.value.trim(), ids.startTime.value.trim(), ids.eventTimezone.value),
+        end_at: toIsoByTimezone(ids.eventDate.value.trim(), ids.endTime.value.trim(), ids.eventTimezone.value),
         lawyer_chat_id: document.getElementById("lawyerChatId").value.trim(),
+        reminder_24h: ids.reminder24h.checked,
+        reminder_2h: ids.reminder2h.checked,
+        reminder_30m: ids.reminder30m.checked,
+        custom_reminder_minutes: ids.customReminderEnabled.checked
+          ? Number(ids.customReminderMinutes.value || 0)
+          : null,
       });
 
       const aiPayload = () => ({
@@ -281,7 +345,7 @@
       });
 
       const getUrls = () => {
-        const cfg = getConfig();
+        const cfg = getEffectiveConfig();
         return cfg.directN8nMode
           ? {
               caseCreate: `${cfg.n8nBase}${cfg.casePath}`,
@@ -312,6 +376,9 @@
       ids.directN8nMode.addEventListener("change", () => {
         ids.n8nConfig.classList.toggle("hidden", !ids.directN8nMode.checked);
       });
+      ids.customReminderEnabled.addEventListener("change", () => {
+        ids.customReminderRow.classList.toggle("hidden", !ids.customReminderEnabled.checked);
+      });
 
       document.getElementById("createCaseBtn").addEventListener("click", async () => {
         try {
@@ -325,9 +392,15 @@
 
       document.getElementById("createEventBtn").addEventListener("click", async () => {
         try {
+          if (!ids.eventDate.value || !ids.startTime.value || !ids.endTime.value) {
+            throw new Error("Укажите дату и время начала/окончания.");
+          }
           const urls = getUrls();
           const data = await callJson({ url: urls.eventCreate, body: eventPayload() });
-          setResult("createEventResult", data);
+          setResult("createEventResult", {
+            message: "Событие создано, напоминания поставлены.",
+            payload: data,
+          });
         } catch (error) {
           setResult("createEventResult", friendlyError(error), true);
         }
@@ -407,12 +480,18 @@
       });
 
       const savedConfig = readConfig();
-      applyConfig(savedConfig);
-      if (!savedConfig) {
+      if (isLawyerMode && !isDevMode) {
         applyConfig(defaultConfig);
-        ids.configState.textContent = "Используются значения по умолчанию";
-        ids.configState.className = "status-pill";
+        ids.setupSection.classList.add("hidden");
+      } else {
+        applyConfig(savedConfig);
+        if (!savedConfig) {
+          applyConfig(defaultConfig);
+          ids.configState.textContent = "Используются значения по умолчанию";
+          ids.configState.className = "status-pill";
+        }
       }
+      ids.customReminderRow.classList.toggle("hidden", !ids.customReminderEnabled.checked);
       ids.n8nConfig.classList.toggle("hidden", !ids.directN8nMode.checked);
     </script>
   </body>

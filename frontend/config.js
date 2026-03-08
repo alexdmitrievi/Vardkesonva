@@ -5,4 +5,5 @@ window.LEGAL_PORTAL_CONFIG = {
   casePath: "/webhook/case/create",
   eventPath: "/webhook/case/event/create",
   aiPath: "/webhook/ai/legal/consult",
+  lawyerMode: true,
 };
