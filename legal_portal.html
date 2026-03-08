@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LegalFlow — рабочий кабинет</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121a30;
+      --panel-2: #182442;
+      --text: #e6ecff;
+      --muted: #96a5d6;
+      --brand: #5d8dff;
+      --accent: #22d3ee;
+      --ok: #4ade80;
+      --warn: #fbbf24;
+      --danger: #f87171;
+      --border: #2a3760;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at 20% 0%, #1a2a56 0%, var(--bg) 45%);
+      min-height: 100vh;
+    }
+    .container { max-width: 1240px; margin: 0 auto; padding: 20px; display: grid; gap: 14px; }
+    .card { background: linear-gradient(180deg, var(--panel), var(--panel-2)); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .brand { font-weight: 700; letter-spacing: .3px; }
+    .muted { color: var(--muted); font-size: 13px; }
+
+    .role-switch { display: inline-flex; background: rgba(255,255,255,.06); border: 1px solid var(--border); border-radius: 999px; padding: 4px; gap: 4px; }
+    .role-switch button { border: 0; color: var(--muted); background: transparent; padding: 8px 12px; border-radius: 999px; cursor: pointer; font-weight: 600; }
+    .role-switch button.active { background: linear-gradient(90deg, var(--brand), #7aa0ff); color: white; }
+
+    .grid { display: grid; gap: 12px; }
+    .grid-2 { grid-template-columns: 1fr 1fr; }
+    .grid-main { grid-template-columns: 1.1fr .9fr; }
+
+    .input, .textarea {
+      width: 100%;
+      color: var(--text);
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      font: inherit;
+    }
+    .textarea { min-height: 110px; resize: vertical; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+    .btn {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn.primary { border: 0; background: linear-gradient(90deg, var(--brand), var(--accent)); color: #071028; }
+
+    .section-title { display:flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: 600; }
+    .status { font-size: 13px; margin-top: 8px; }
+    .status.ok { color: var(--ok); }
+    .status.err { color: var(--danger); }
+
+    .list { display: grid; gap: 8px; }
+    .item { background: rgba(255,255,255,.03); border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .hidden { display: none; }
+
+    @media (max-width: 980px) {
+      .grid-main, .grid-2, .row, .row-3 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .container { padding: 12px; }
+      .topbar { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="card topbar">
+      <div>
+        <div class="brand">⚖️ LegalFlow Workspace (рабочая версия)</div>
+        <div class="muted">Интерфейс для юристов/адвокатов и клиентов с реальными API-вызовами</div>
+      </div>
+      <div class="role-switch" id="roleSwitch">
+        <button class="active" data-role="lawyer">Юрист / Адвокат</button>
+        <button data-role="client">Клиент</button>
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="section-title"><span>🔌 Настройки API</span></div>
+      <div class="row-3">
+        <input id="apiBase" class="input" placeholder="Base API (опц.) например https://app.example.ru/api" />
+        <input id="n8nBase" class="input" placeholder="n8n Base URL, например https://n8n.example.ru" />
+        <input id="authToken" class="input" placeholder="Bearer token (опц.)" />
+      </div>
+      <div style="height:8px"></div>
+      <div class="row-3">
+        <input id="casePath" class="input" value="/webhook/case/create" />
+        <input id="eventPath" class="input" value="/webhook/case/event/create" />
+        <input id="aiPath" class="input" value="/webhook/ai/legal/consult" />
+      </div>
+      <div style="height:8px"></div>
+      <div class="toolbar">
+        <button class="btn" id="saveSettingsBtn">Сохранить настройки</button>
+        <button class="btn" id="loadDemoBtn">Демо-настройки</button>
+        <span class="muted">Для файлов используем API: <code>{apiBase}/files</code> (если пусто — локальный режим в браузере)</span>
+      </div>
+    </section>
+
+    <section class="grid grid-main" id="lawyerView">
+      <article class="card">
+        <div class="section-title"><span>📁 Создать дело (n8n)</span></div>
+        <div class="row">
+          <input id="caseCode" class="input" placeholder="Код дела (например A40-12345/2026)" />
+          <input id="caseType" class="input" placeholder="Тип дела" />
+        </div>
+        <div style="height:8px"></div>
+        <div class="row">
+          <input id="caseClientRef" class="input" placeholder="ID клиента" />
+          <input id="caseLawyerRef" class="input" placeholder="ID юриста" />
+        </div>
+        <div style="height:8px"></div>
+        <div class="toolbar">
+          <button class="btn primary" id="createCaseBtn">Создать дело</button>
+        </div>
+        <div id="caseStatus" class="status muted">Ожидает отправки…</div>
+      </article>
+
+      <article class="card">
+        <div class="section-title"><span>📅 Создать событие (n8n)</span></div>
+        <div class="row">
+          <input id="eventCaseCode" class="input" placeholder="Код дела" />
+          <input id="eventType" class="input" value="court_hearing" placeholder="Тип события" />
+        </div>
+        <div style="height:8px"></div>
+        <div class="row">
+          <input id="eventStart" class="input" type="datetime-local" />
+          <input id="eventEnd" class="input" type="datetime-local" />
+        </div>
+        <div style="height:8px"></div>
+        <input id="lawyerChatId" class="input" placeholder="Telegram chat ID юриста" />
+        <div style="height:8px"></div>
+        <button class="btn primary" id="createEventBtn">Создать событие</button>
+        <div id="eventStatus" class="status muted">Ожидает отправки…</div>
+      </article>
+
+      <article class="card">
+        <div class="section-title"><span>🤖 AI-консультант (n8n)</span></div>
+        <input id="aiCaseCode" class="input" placeholder="Код дела" />
+        <div style="height:8px"></div>
+        <textarea id="aiText" class="textarea" placeholder="Вставьте текст материалов дела"></textarea>
+        <div style="height:8px"></div>
+        <button class="btn primary" id="analyzeBtn">Запустить AI-анализ</button>
+        <div id="aiStatus" class="status muted">Ожидает запроса…</div>
+        <div style="height:8px"></div>
+        <pre id="aiResult" class="item" style="white-space:pre-wrap; max-height:260px; overflow:auto">Пока пусто.</pre>
+      </article>
+
+      <article class="card">
+        <div class="section-title"><span>🗂️ Файлы дела (open/preview/download)</span></div>
+        <div class="row">
+          <input id="filesCaseCode" class="input" placeholder="Код дела для файлов" />
+          <input id="fileInput" class="input" type="file" multiple />
+        </div>
+        <div style="height:8px"></div>
+        <div class="toolbar">
+          <button class="btn primary" id="uploadFilesBtn">Загрузить файлы</button>
+          <button class="btn" id="refreshFilesBtn">Обновить список</button>
+        </div>
+        <div id="filesStatus" class="status muted">Режим: локальный fallback (если apiBase пуст)</div>
+        <div style="height:8px"></div>
+        <div id="filesList" class="list"></div>
+      </article>
+    </section>
+
+    <section class="card hidden" id="clientView">
+      <div class="section-title"><span>👤 Кабинет клиента</span></div>
+      <div class="muted">Клиентский вид использует тот же файловый блок и API. Вы можте загрузить документы в дело и скачать/открыть их ниже.</div>
+      <div style="height:10px"></div>
+      <div class="item">Переключитесь в режим «Юрист/Адвокат», чтобы использовать полный набор функций (создание дела, событий, AI).</div>
+    </section>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const localState = {
+      filesByCase: {}
+    };
+
+    function toIso(value) {
+      if (!value) return null;
+      return new Date(value).toISOString();
+    }
+
+    function getSettings() {
+      return {
+        apiBase: $('apiBase').value.trim(),
+        n8nBase: $('n8nBase').value.trim(),
+        authToken: $('authToken').value.trim(),
+        casePath: $('casePath').value.trim(),
+        eventPath: $('eventPath').value.trim(),
+        aiPath: $('aiPath').value.trim()
+      };
+    }
+
+    function headers(withJson = true) {
+      const h = {};
+      const token = $('authToken').value.trim();
+      if (withJson) h['Content-Type'] = 'application/json';
+      if (token) h['Authorization'] = `Bearer ${token}`;
+      return h;
+    }
+
+    function saveSettings() {
+      localStorage.setItem('legalflow_settings', JSON.stringify(getSettings()));
+      alert('Настройки сохранены.');
+    }
+
+    function loadSettings() {
+      const raw = localStorage.getItem('legalflow_settings');
+      if (!raw) return;
+      try {
+        const s = JSON.parse(raw);
+        Object.entries(s).forEach(([k, v]) => { if ($(k)) $(k).value = v || ''; });
+      } catch {}
+    }
+
+    function applyDemoSettings() {
+      $('n8nBase').value = 'http://localhost:5678';
+      $('casePath').value = '/webhook/case/create';
+      $('eventPath').value = '/webhook/case/event/create';
+      $('aiPath').value = '/webhook/ai/legal/consult';
+      $('apiBase').value = '';
+    }
+
+    async function callN8n(path, payload) {
+      const base = $('n8nBase').value.trim();
+      if (!base) throw new Error('Укажите n8n Base URL в настройках API.');
+      const url = `${base}${path}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: headers(true),
+        body: JSON.stringify(payload)
+      });
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${JSON.stringify(data)}`);
+      return data;
+    }
+
+    function setStatus(el, text, ok = true) {
+      el.textContent = text;
+      el.className = `status ${ok ? 'ok' : 'err'}`;
+    }
+
+    async function createCase() {
+      const payload = {
+        case_code: $('caseCode').value.trim(),
+        case_type: $('caseType').value.trim(),
+        client_ref: $('caseClientRef').value.trim(),
+        lawyer_ref: $('caseLawyerRef').value.trim(),
+        jurisdiction: 'Россия'
+      };
+      if (!payload.case_code) return setStatus($('caseStatus'), 'Введите код дела.', false);
+      try {
+        const data = await callN8n($('casePath').value.trim(), payload);
+        setStatus($('caseStatus'), `✅ Дело создано: ${JSON.stringify(data)}`);
+      } catch (e) {
+        setStatus($('caseStatus'), `❌ Ошибка: ${e.message}`, false);
+      }
+    }
+
+    async function createEvent() {
+      const payload = {
+        case_code: $('eventCaseCode').value.trim(),
+        event_type: $('eventType').value.trim() || 'court_hearing',
+        start_at: toIso($('eventStart').value),
+        end_at: toIso($('eventEnd').value),
+        lawyer_chat_id: $('lawyerChatId').value.trim()
+      };
+      if (!payload.case_code || !payload.start_at || !payload.end_at) {
+        return setStatus($('eventStatus'), 'Заполните код дела, начало и конец события.', false);
+      }
+      try {
+        const data = await callN8n($('eventPath').value.trim(), payload);
+        setStatus($('eventStatus'), `✅ Событие создано: ${JSON.stringify(data)}`);
+      } catch (e) {
+        setStatus($('eventStatus'), `❌ Ошибка: ${e.message}`, false);
+      }
+    }
+
+    async function runAi() {
+      const payload = {
+        case_code: $('aiCaseCode').value.trim() || null,
+        jurisdiction: 'Россия',
+        document_text: $('aiText').value.trim()
+      };
+      if (!payload.document_text) return setStatus($('aiStatus'), 'Введите текст материалов дела.', false);
+      try {
+        const data = await callN8n($('aiPath').value.trim(), payload);
+        $('aiResult').textContent = JSON.stringify(data, null, 2);
+        setStatus($('aiStatus'), '✅ AI-анализ завершён');
+      } catch (e) {
+        $('aiResult').textContent = e.message;
+        setStatus($('aiStatus'), `❌ Ошибка: ${e.message}`, false);
+      }
+    }
+
+    function ensureCase() {
+      const cc = $('filesCaseCode').value.trim();
+      if (!cc) {
+        setStatus($('filesStatus'), 'Укажите код дела для файлов.', false);
+        return null;
+      }
+      return cc;
+    }
+
+    function renderFiles(list) {
+      const root = $('filesList');
+      root.innerHTML = '';
+      if (!list.length) {
+        root.innerHTML = '<div class="item muted">Файлы не найдены.</div>';
+        return;
+      }
+      list.forEach((f, idx) => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        const name = f.name || f.fileName || `file-${idx + 1}`;
+        const size = f.size ? ` • ${Math.round(f.size / 1024)} KB` : '';
+        const openUrl = f.preview_url || f.download_url || f.url || '#';
+        const downloadUrl = f.download_url || f.url || '#';
+        div.innerHTML = `
+          <div><strong>${name}</strong><span class="muted">${size}</span></div>
+          <div class="toolbar">
+            <a class="btn" href="${openUrl}" target="_blank" rel="noopener">Открыть/Просмотр</a>
+            <a class="btn" href="${downloadUrl}" download="${name}">Скачать</a>
+          </div>
+        `;
+        root.appendChild(div);
+      });
+    }
+
+    async function fetchFiles() {
+      const caseCode = ensureCase();
+      if (!caseCode) return;
+      const apiBase = $('apiBase').value.trim();
+
+      if (!apiBase) {
+        const list = localState.filesByCase[caseCode] || [];
+        renderFiles(list);
+        setStatus($('filesStatus'), '✅ Локальный режим: список обновлён');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${apiBase}/files?case_code=${encodeURIComponent(caseCode)}`, { headers: headers(false) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(JSON.stringify(data));
+        renderFiles(Array.isArray(data) ? data : (data.items || []));
+        setStatus($('filesStatus'), '✅ Файлы загружены из API');
+      } catch (e) {
+        setStatus($('filesStatus'), `❌ Ошибка загрузки списка: ${e.message}`, false);
+      }
+    }
+
+    async function uploadFiles() {
+      const caseCode = ensureCase();
+      if (!caseCode) return;
+      const files = Array.from($('fileInput').files || []);
+      if (!files.length) return setStatus($('filesStatus'), 'Выберите хотя бы один файл.', false);
+
+      const apiBase = $('apiBase').value.trim();
+      if (!apiBase) {
+        localState.filesByCase[caseCode] = localState.filesByCase[caseCode] || [];
+        files.forEach(file => {
+          localState.filesByCase[caseCode].push({
+            name: file.name,
+            size: file.size,
+            url: URL.createObjectURL(file),
+            download_url: URL.createObjectURL(file),
+            preview_url: URL.createObjectURL(file)
+          });
+        });
+        setStatus($('filesStatus'), `✅ Загружено локально: ${files.length} файл(ов)`);
+        fetchFiles();
+        return;
+      }
+
+      try {
+        const fd = new FormData();
+        fd.append('case_code', caseCode);
+        files.forEach(f => fd.append('files', f));
+        const token = $('authToken').value.trim();
+        const res = await fetch(`${apiBase}/files/upload`, {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: fd
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(JSON.stringify(data));
+        setStatus($('filesStatus'), `✅ Загружено в API: ${files.length} файл(ов)`);
+        fetchFiles();
+      } catch (e) {
+        setStatus($('filesStatus'), `❌ Ошибка upload: ${e.message}`, false);
+      }
+    }
+
+    function initRoleSwitch() {
+      const buttons = document.querySelectorAll('#roleSwitch button');
+      buttons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          buttons.forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          const role = btn.dataset.role;
+          const isLawyer = role === 'lawyer';
+          $('lawyerView').classList.toggle('hidden', !isLawyer);
+          $('clientView').classList.toggle('hidden', isLawyer);
+        });
+      });
+    }
+
+    function bootstrap() {
+      loadSettings();
+      initRoleSwitch();
+      $('saveSettingsBtn').addEventListener('click', saveSettings);
+      $('loadDemoBtn').addEventListener('click', applyDemoSettings);
+      $('createCaseBtn').addEventListener('click', createCase);
+      $('createEventBtn').addEventListener('click', createEvent);
+      $('analyzeBtn').addEventListener('click', runAi);
+      $('uploadFilesBtn').addEventListener('click', uploadFiles);
+      $('refreshFilesBtn').addEventListener('click', fetchFiles);
+    }
+
+    bootstrap();
+  </script>
+</body>
+</html>
